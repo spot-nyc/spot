@@ -1,0 +1,29 @@
+# Binaries
+/spot
+/dist/
+coverage.out
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Credentials (defensive; SDK never writes credentials to the repo, but guarding against fat-finger)
+credentials.json
+*.token
+.env
+.env.local
