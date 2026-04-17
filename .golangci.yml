@@ -1,0 +1,31 @@
+version: "2"
+
+linters:
+  enable:
+    - revive
+  settings:
+    revive:
+      rules:
+        - name: exported
+          severity: warning
+        - name: var-naming
+
+formatters:
+  enable:
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/spot-nyc/spot
+
+run:
+  timeout: 5m
+
+issues:
+  exclude-dirs:
+    - dist
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - revive
+      text: "exported"
