@@ -133,3 +133,118 @@ type emptyTokenSource struct{}
 func (emptyTokenSource) Token() (*oauth2.Token, error) {
 	return nil, errors.New("no credentials")
 }
+
+func TestClient_do_Maps401_ToErrUnauthenticated(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = io.WriteString(w, `{"error":"Missing authorization header"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodGet, "/anything", nil, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrUnauthenticated)
+
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, http.StatusUnauthorized, spotErr.HTTPStatus)
+	assert.Equal(t, "Missing authorization header", spotErr.Message)
+}
+
+func TestClient_do_Maps409_ToErrConflict(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = io.WriteString(w, `{"error":"already booked"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodPost, "/", nil, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrConflict)
+}
+
+func TestClient_do_Maps422_ToErrValidation(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = io.WriteString(w, `{"error":"invalid party size"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodPost, "/", nil, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrValidation)
+}
+
+func TestClient_do_Maps429_ToErrRateLimited(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusTooManyRequests)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodGet, "/", nil, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrRateLimited)
+}
+
+func TestClient_do_Maps500_ToErrServer(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.WriteString(w, `{"error":"Internal server error"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodGet, "/", nil, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrServer)
+}
+
+func TestClient_do_404_ReturnsGenericNotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, `{"error":"not found"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodGet, "/", nil, nil)
+	require.Error(t, err)
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, "not_found", spotErr.Code)
+	assert.Equal(t, http.StatusNotFound, spotErr.HTTPStatus)
+}
+
+func TestClient_do_UnparseableErrorBody_StillReturnsError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+		_, _ = io.WriteString(w, `<html>gateway error</html>`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodGet, "/", nil, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrServer)
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, http.StatusBadGateway, spotErr.HTTPStatus)
+}

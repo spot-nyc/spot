@@ -114,9 +114,48 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 	return mapErrorResponse(resp)
 }
 
-// mapErrorResponse is a stub replaced by Task 5 with real error-mapping logic.
-// It lets Task 4 compile and its tests (which don't exercise error paths deeply)
-// run green.
-func mapErrorResponse(_ *http.Response) error {
-	return errors.New("spot: unmapped error response")
+// mortyErrorBody matches the API's HTTPException response shape (e.g., Hono's
+// {"error": "..."} JSON envelope).
+type mortyErrorBody struct {
+	Error string `json:"error"`
+}
+
+// mapErrorResponse translates a non-2xx API response into a *Error backed by
+// one of the sentinel codes. The body (if parseable) supplies the message; the
+// HTTP status code is always recorded in Error.HTTPStatus.
+func mapErrorResponse(resp *http.Response) error {
+	var msg string
+	var body mortyErrorBody
+	if resp.ContentLength != 0 {
+		_ = json.NewDecoder(resp.Body).Decode(&body)
+		msg = body.Error
+	}
+
+	var code string
+	switch {
+	case resp.StatusCode == http.StatusUnauthorized, resp.StatusCode == http.StatusForbidden:
+		code = ErrUnauthenticated.Code
+	case resp.StatusCode == http.StatusNotFound:
+		code = "not_found"
+	case resp.StatusCode == http.StatusConflict:
+		code = ErrConflict.Code
+	case resp.StatusCode == http.StatusBadRequest, resp.StatusCode == http.StatusUnprocessableEntity:
+		code = ErrValidation.Code
+	case resp.StatusCode == http.StatusTooManyRequests:
+		code = ErrRateLimited.Code
+	case resp.StatusCode >= 500:
+		code = ErrServer.Code
+	default:
+		code = "http_error"
+	}
+
+	if msg == "" {
+		msg = http.StatusText(resp.StatusCode)
+	}
+
+	return &Error{
+		Code:       code,
+		Message:    msg,
+		HTTPStatus: resp.StatusCode,
+	}
 }
