@@ -20,12 +20,3 @@ formatters:
 
 run:
   timeout: 5m
-
-issues:
-  exclude-dirs:
-    - dist
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - revive
-      text: "exported"
