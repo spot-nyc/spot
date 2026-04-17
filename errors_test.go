@@ -22,9 +22,15 @@ func TestError_Is_DifferentCodeDoesNotMatch(t *testing.T) {
 	assert.False(t, errors.Is(e, ErrSearchNotFound), "errors.Is should not match different code")
 }
 
-func TestError_Is_NonErrorTargetDoesNotMatch(t *testing.T) {
+func TestError_Is_NonSpotErrorTargetDoesNotMatch(t *testing.T) {
 	e := &Error{Code: "x"}
 	assert.False(t, errors.Is(e, errors.New("some other error")))
+}
+
+func TestError_Is_NilSpotErrorTargetDoesNotMatch(t *testing.T) {
+	e := &Error{Code: "x"}
+	var nilTarget *Error
+	assert.False(t, errors.Is(e, nilTarget), "errors.Is should not match a nil *Error target")
 }
 
 func TestSentinels_AllHaveCodes(t *testing.T) {

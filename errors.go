@@ -15,7 +15,7 @@ type Error struct {
 	Code string
 	// Message is the human-readable description.
 	Message string
-	// HTTPStatus is the HTTP status code returned by morty. Zero for non-HTTP errors.
+	// HTTPStatus is the HTTP status code returned by the API. Zero for non-HTTP errors.
 	HTTPStatus int
 	// Details is an optional server-provided detail blob.
 	Details map[string]any
@@ -30,7 +30,7 @@ func (e *Error) Error() string {
 // errors.Is comparisons against the sentinel values.
 func (e *Error) Is(target error) bool {
 	t, ok := target.(*Error)
-	if !ok {
+	if !ok || t == nil {
 		return false
 	}
 	return e.Code == t.Code
@@ -51,11 +51,11 @@ var (
 	// ErrNoAvailability means no matching availability was found.
 	ErrNoAvailability = &Error{Code: "no_availability", Message: "no availability"}
 	// ErrConflict means the request conflicts with existing state (e.g., already booked).
-	ErrConflict = &Error{Code: "conflict", Message: "conflict"}
+	ErrConflict = &Error{Code: "conflict", Message: "conflict with existing state"}
 	// ErrValidation means the request was malformed or failed server-side validation.
 	ErrValidation = &Error{Code: "validation", Message: "validation error"}
-	// ErrRateLimited means morty returned 429.
+	// ErrRateLimited means the server returned HTTP 429 (Too Many Requests).
 	ErrRateLimited = &Error{Code: "rate_limited", Message: "rate limited"}
-	// ErrServer means morty returned a 5xx response.
+	// ErrServer means the server returned a 5xx response.
 	ErrServer = &Error{Code: "server_error", Message: "server error"}
 )
