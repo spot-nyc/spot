@@ -1,12 +1,21 @@
 package auth
 
-import "golang.org/x/oauth2"
+import (
+	"context"
 
-// DefaultTokenSource returns the default token source for the current process.
+	"golang.org/x/oauth2"
+)
+
+// DefaultTokenSource returns the default token source for the current process:
 //
-// In M1a, this is simply an EnvStore-backed TokenSource. M1b extends the
-// resolution chain to env → keyring → file, with env always taking precedence
-// when SPOT_TOKEN is set.
+//  1. Credentials are resolved via DefaultStore (EnvStore → KeyringStore → FileStore).
+//  2. Expired tokens auto-refresh via oauth2.Config.TokenSource against
+//     DefaultOAuthConfig().
+//  3. Rotated tokens are persisted back to the first writable store.
+//
+// The returned source uses context.Background() for refresh. Callers wanting
+// to control refresh cancellation should construct their own source via
+// NewRefreshingTokenSource(ctx, cfg, store).
 func DefaultTokenSource() oauth2.TokenSource {
-	return NewTokenSource(EnvStore{})
+	return NewRefreshingTokenSource(context.Background(), DefaultOAuthConfig(), DefaultStore())
 }
