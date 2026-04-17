@@ -124,12 +124,9 @@ type mortyErrorBody struct {
 // one of the sentinel codes. The body (if parseable) supplies the message; the
 // HTTP status code is always recorded in Error.HTTPStatus.
 func mapErrorResponse(resp *http.Response) error {
-	var msg string
 	var body mortyErrorBody
-	if resp.ContentLength != 0 {
-		_ = json.NewDecoder(resp.Body).Decode(&body)
-		msg = body.Error
-	}
+	_ = json.NewDecoder(resp.Body).Decode(&body)
+	msg := body.Error
 
 	var code string
 	switch {
