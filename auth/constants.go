@@ -12,15 +12,11 @@ import (
 
 // SupabaseProjectRef is the subdomain of the Supabase project's auth host,
 // e.g. if the project URL is https://abcd1234.supabase.co this is "abcd1234".
-//
-// Placeholder until M1c.
-var SupabaseProjectRef = "placeholder-project-ref"
+var SupabaseProjectRef = "iotmomhesfkqaktldtxx"
 
 // ClientID is the OAuth 2.1 public client identifier assigned by Supabase when
 // the Spot CLI was registered as an OAuth client.
-//
-// Placeholder until M1c.
-var ClientID = "placeholder-client-id"
+var ClientID = "60e5a5cb-00a0-42bd-b7b2-6ff112656285"
 
 // DefaultScopes is the default space-separated scope string requested at login.
 //
