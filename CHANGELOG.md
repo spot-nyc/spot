@@ -35,3 +35,16 @@ Full OAuth flow works end-to-end against real Supabase + real morty:
 - Supabase project's `authorization_url_path` set to `/oauth/consent`.
 - Spot Pro ships consent UI at `/oauth/consent` and decision handler at `/api/oauth/decision`.
 - Spot Pro sign-in preserves `?redirect=` query param through phone + OTP flow.
+
+### Added (M2 — first user-visible commands)
+- `spot auth login` — browser-based PKCE sign-in, persists credentials to keyring/file.
+- `spot auth logout` — deletes locally-stored credentials (idempotent).
+- `spot auth whoami` — prints the currently-authenticated user profile.
+- `spot searches list` — lists active reservation searches with human-friendly formatting (truncated IDs, `May 1, 2026` dates, `6:00 PM–9:00 PM` times, restaurant names).
+- Global `--json` / `-j` flag on every command; stdout format auto-detects based on TTY.
+- Stable, documented exit codes mapped from library error sentinels (3 unauth, 4 expired, 5 not-found, 6 conflict, 7 validation, 8 rate-limit, 9 server).
+- Friendlier table-mode messages for `ErrUnauthenticated` and `ErrAuthExpired` that tell users to run `spot auth login`.
+- `internal/tty` and `internal/render` helpers (TTY detection + JSON/table writing via text/tabwriter).
+- `SearchesService.List` + `Search` / `SearchTarget` / `Restaurant` types in the library.
+- `SPOT_BASE_URL` env var for overriding the API base URL (primarily for testing).
+- End-to-end CLI integration tests covering the full `cobra → Client → httptest → render` pipeline.
