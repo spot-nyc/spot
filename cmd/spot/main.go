@@ -2,16 +2,23 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
 
 	"github.com/spot-nyc/spot"
+	"github.com/spot-nyc/spot/internal/render"
 )
 
+// rootFlags holds persistent flag state shared by all subcommands.
+type rootFlags struct {
+	json bool
+}
+
 func newRootCmd() *cobra.Command {
-	return &cobra.Command{
+	flags := &rootFlags{}
+
+	cmd := &cobra.Command{
 		Use:   "spot",
 		Short: "Spot — manage reservations, searches, and restaurant lookup",
 		Long: "The Spot CLI.\n\n" +
@@ -25,11 +32,36 @@ func newRootCmd() *cobra.Command {
 			return command.Help()
 		},
 	}
+
+	cmd.PersistentFlags().BoolVarP(&flags.json, "json", "j", false, "force JSON output (default: auto-detect based on TTY)")
+
+	cmd.AddCommand(newAuthCmd(flags))
+	cmd.AddCommand(newSearchesCmd(flags))
+
+	return cmd
+}
+
+// resolveFormat determines the effective output format for a command.
+// Honors the persistent --json flag; otherwise auto-detects based on stdout.
+// nolint:unused // used by subcommands in future tasks
+func (f *rootFlags) resolveFormat() render.Format {
+	return render.Resolve(f.json, os.Stdout)
 }
 
 func main() {
-	if err := newRootCmd().Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, "error:", err)
-		os.Exit(1)
+	cmd := newRootCmd()
+	if err := cmd.Execute(); err != nil {
+		format := render.FormatTable
+		if jsonFlag := cmd.PersistentFlags().Lookup("json"); jsonFlag != nil && jsonFlag.Value.String() == "true" {
+			format = render.FormatJSON
+		}
+
+		if format == render.FormatJSON {
+			RenderError(os.Stdout, format, err)
+		} else {
+			RenderError(os.Stderr, format, err)
+		}
+
+		os.Exit(ExitCodeFor(err))
 	}
 }

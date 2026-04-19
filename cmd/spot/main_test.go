@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/spot-nyc/spot"
 )
@@ -45,4 +46,31 @@ func TestRootCommand_HelpFlag(t *testing.T) {
 	output := out.String()
 	assert.Contains(t, output, "spot", "help output should name the command")
 	assert.Contains(t, output, "Usage:", "help output should have a Usage section")
+}
+
+func TestRootCommand_JSONFlagParsing(t *testing.T) {
+	cmd := newRootCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"--json"})
+
+	// With --json but no subcommand, root's RunE still just runs help — but
+	// the flag parse should succeed and the Bool value should be true.
+	require.NoError(t, cmd.Execute())
+
+	flag := cmd.PersistentFlags().Lookup("json")
+	require.NotNil(t, flag, "persistent --json flag should be registered")
+	assert.Equal(t, "true", flag.Value.String())
+}
+
+func TestRootCommand_JFlagIsShortForm(t *testing.T) {
+	cmd := newRootCmd()
+	var out bytes.Buffer
+	cmd.SetOut(&out)
+	cmd.SetErr(&out)
+	cmd.SetArgs([]string{"-j"})
+
+	require.NoError(t, cmd.Execute())
+	assert.Equal(t, "true", cmd.PersistentFlags().Lookup("json").Value.String())
 }
