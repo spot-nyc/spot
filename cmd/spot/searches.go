@@ -53,7 +53,7 @@ func newSearchesListCmd(flags *rootFlags) *cobra.Command {
 			for _, s := range searches {
 				timeRange := formatTime(s.StartTime) + "–" + formatTime(s.EndTime)
 				_, _ = fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n",
-					shortID(s.ID), s.Party, s.StartDate, timeRange, joinRestaurantNames(s.SearchTargets))
+					shortID(s.ID), s.Party, formatDate(s.StartDate), timeRange, joinRestaurantNames(s.SearchTargets))
 			}
 			return tw.Flush()
 		},
@@ -82,6 +82,15 @@ func formatTime(t string) string {
 		}
 	}
 	return t
+}
+
+// formatDate renders a "YYYY-MM-DD" string as "Jan 2, 2006" (e.g.
+// "2026-05-01" → "May 1, 2026"). Unrecognized inputs pass through unchanged.
+func formatDate(d string) string {
+	if parsed, err := time.Parse("2006-01-02", d); err == nil {
+		return parsed.Format("Jan 2, 2006")
+	}
+	return d
 }
 
 // joinRestaurantNames flattens a search's targets into a comma-separated

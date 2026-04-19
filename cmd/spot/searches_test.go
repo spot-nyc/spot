@@ -47,6 +47,24 @@ func TestFormatTime(t *testing.T) {
 	}
 }
 
+func TestFormatDate(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"2026-05-01", "May 1, 2026"},
+		{"2024-12-31", "Dec 31, 2024"},
+		{"2026-01-01", "Jan 1, 2026"},
+		{"not-a-date", "not-a-date"},
+		{"", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			assert.Equal(t, tc.want, formatDate(tc.in))
+		})
+	}
+}
+
 func TestJoinRestaurantNames(t *testing.T) {
 	cases := []struct {
 		name    string
