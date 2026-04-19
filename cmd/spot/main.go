@@ -2,6 +2,7 @@
 package main
 
 import (
+	"io"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -41,11 +42,12 @@ func newRootCmd() *cobra.Command {
 	return cmd
 }
 
-// resolveFormat determines the effective output format for a command.
-// Honors the persistent --json flag; otherwise auto-detects based on stdout.
-// nolint:unused // used by subcommands in future tasks
-func (f *rootFlags) resolveFormat() render.Format {
-	return render.Resolve(f.json, os.Stdout)
+// resolveFormat determines the effective output format for a command writing
+// to out. Honors the persistent --json flag; otherwise auto-detects based on
+// whether out is a TTY. Pass cmd.OutOrStdout() from each command so tests
+// that call SetOut(&buf) get deterministic JSON output.
+func (f *rootFlags) resolveFormat(out io.Writer) render.Format {
+	return render.ResolveWriter(f.json, out)
 }
 
 func main() {

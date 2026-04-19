@@ -58,7 +58,7 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 				return nil
 			}
 
-			format := flags.resolveFormat()
+			format := flags.resolveFormat(cmd.OutOrStdout())
 			if format == render.FormatJSON {
 				return render.JSON(cmd.OutOrStdout(), map[string]any{
 					"signedIn": true,
@@ -88,7 +88,7 @@ func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
 				return err
 			}
 
-			format := flags.resolveFormat()
+			format := flags.resolveFormat(cmd.OutOrStdout())
 			if format == render.FormatJSON {
 				return render.JSON(cmd.OutOrStdout(), map[string]any{"signedOut": true})
 			}
@@ -113,7 +113,7 @@ func newAuthWhoamiCmd(flags *rootFlags) *cobra.Command {
 				return err
 			}
 
-			format := flags.resolveFormat()
+			format := flags.resolveFormat(cmd.OutOrStdout())
 			if format == render.FormatJSON {
 				return render.JSON(cmd.OutOrStdout(), user)
 			}

@@ -37,7 +37,7 @@ func newSearchesListCmd(flags *rootFlags) *cobra.Command {
 				return err
 			}
 
-			format := flags.resolveFormat()
+			format := flags.resolveFormat(cmd.OutOrStdout())
 			if format == render.FormatJSON {
 				return render.JSON(cmd.OutOrStdout(), searches)
 			}
