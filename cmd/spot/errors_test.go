@@ -72,11 +72,30 @@ func TestRenderError_JSON_PlainError(t *testing.T) {
 	assert.Equal(t, "boom", envelope.Error.Message)
 }
 
-func TestRenderError_Table_PlainText(t *testing.T) {
+func TestRenderError_Table_FriendlyUnauthenticated(t *testing.T) {
 	var buf bytes.Buffer
 	RenderError(&buf, render.FormatTable, spot.ErrUnauthenticated)
 
 	got := buf.String()
-	assert.Contains(t, got, "unauthenticated")
+	assert.Contains(t, got, "not signed in", "table mode should hint at sign-in")
+	assert.Contains(t, got, "spot auth login", "table mode should point at the login command")
 	assert.NotContains(t, got, "{", "table mode should not emit JSON")
+}
+
+func TestRenderError_Table_FriendlyAuthExpired(t *testing.T) {
+	var buf bytes.Buffer
+	RenderError(&buf, render.FormatTable, spot.ErrAuthExpired)
+
+	got := buf.String()
+	assert.Contains(t, got, "session expired")
+	assert.Contains(t, got, "spot auth login")
+}
+
+func TestRenderError_Table_GenericErrorFallback(t *testing.T) {
+	var buf bytes.Buffer
+	RenderError(&buf, render.FormatTable, errors.New("boom"))
+
+	got := buf.String()
+	assert.Contains(t, got, "error:")
+	assert.Contains(t, got, "boom")
 }

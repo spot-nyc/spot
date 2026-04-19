@@ -85,6 +85,15 @@ func RenderError(w io.Writer, format render.Format, err error) {
 		return
 	}
 
-	// Table mode — plain text message to the writer (typically stderr).
-	_, _ = fmt.Fprintln(w, "error:", body.Message)
+	// Table mode — friendlier messages for common cases, plain "error: <msg>"
+	// as the fallback. JSON consumers get the structured envelope above;
+	// humans get hand-holding here.
+	switch {
+	case errors.Is(err, spot.ErrUnauthenticated):
+		_, _ = fmt.Fprintln(w, `You are not signed in. Run "spot auth login" to sign in.`)
+	case errors.Is(err, spot.ErrAuthExpired):
+		_, _ = fmt.Fprintln(w, `Your session expired. Run "spot auth login" to sign in again.`)
+	default:
+		_, _ = fmt.Fprintln(w, "error:", body.Message)
+	}
 }
