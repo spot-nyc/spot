@@ -7,7 +7,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/spot-nyc/spot"
 	"github.com/spot-nyc/spot/auth"
 	"github.com/spot-nyc/spot/internal/render"
 )
@@ -47,7 +46,7 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 				return fmt.Errorf("save credentials: %w", err)
 			}
 
-			client, err := spot.NewClient(spot.WithTokenSource(auth.DefaultTokenSource()))
+			client, err := newClient()
 			if err != nil {
 				return err
 			}
@@ -104,7 +103,7 @@ func newAuthWhoamiCmd(flags *rootFlags) *cobra.Command {
 		Use:   "whoami",
 		Short: "Show the currently-authenticated user",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := spot.NewClient(spot.WithTokenSource(auth.DefaultTokenSource()))
+			client, err := newClient()
 			if err != nil {
 				return err
 			}

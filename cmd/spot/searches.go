@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/spot-nyc/spot"
-	"github.com/spot-nyc/spot/auth"
 	"github.com/spot-nyc/spot/internal/render"
 )
 
@@ -28,7 +27,7 @@ func newSearchesListCmd(flags *rootFlags) *cobra.Command {
 		Use:   "list",
 		Short: "List your active searches",
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			client, err := spot.NewClient(spot.WithTokenSource(auth.DefaultTokenSource()))
+			client, err := newClient()
 			if err != nil {
 				return err
 			}
