@@ -219,7 +219,7 @@ const successHTML = `<!doctype html>
   </style>
 </head>
 <body>
-  <h1>Signed in to Spot.</h1>
+  <h1>Signed in to Spot</h1>
   <p>You can close this tab and return to your terminal.</p>
 </body>
 </html>`
