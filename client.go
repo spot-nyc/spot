@@ -24,7 +24,8 @@ type Client struct {
 	tokenSource oauth2.TokenSource
 
 	// Services
-	Users *UsersService
+	Users    *UsersService
+	Searches *SearchesService
 }
 
 // NewClient constructs a Client. A token source is required; provide one via
@@ -52,6 +53,7 @@ func NewClient(opts ...Option) (*Client, error) {
 		tokenSource: o.tokenSource,
 	}
 	c.Users = &UsersService{client: c}
+	c.Searches = &SearchesService{client: c}
 	return c, nil
 }
 
