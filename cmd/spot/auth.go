@@ -19,6 +19,7 @@ func newAuthCmd(flags *rootFlags) *cobra.Command {
 	}
 
 	cmd.AddCommand(newAuthLoginCmd(flags))
+	cmd.AddCommand(newAuthLogoutCmd(flags))
 
 	return cmd
 }
@@ -70,6 +71,28 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 				name = user.Phone
 			}
 			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Signed in as %s\n", name)
+			return err
+		},
+	}
+}
+
+func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "logout",
+		Short: "Sign this session out of Spot",
+		Long: "Removes locally stored credentials. Your other devices (mobile,\n" +
+			"web) stay signed in. To revoke access everywhere, visit your Spot\n" +
+			"account settings.",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			if err := auth.DefaultStore().Delete(); err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat()
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), map[string]any{"signedOut": true})
+			}
+			_, err := fmt.Fprintf(cmd.OutOrStdout(), "Signed out.\n")
 			return err
 		},
 	}
