@@ -20,6 +20,7 @@ func newAuthCmd(flags *rootFlags) *cobra.Command {
 
 	cmd.AddCommand(newAuthLoginCmd(flags))
 	cmd.AddCommand(newAuthLogoutCmd(flags))
+	cmd.AddCommand(newAuthWhoamiCmd(flags))
 
 	return cmd
 }
@@ -94,6 +95,39 @@ func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
 			}
 			_, err := fmt.Fprintf(cmd.OutOrStdout(), "Signed out.\n")
 			return err
+		},
+	}
+}
+
+func newAuthWhoamiCmd(flags *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "whoami",
+		Short: "Show the currently-authenticated user",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := spot.NewClient(spot.WithTokenSource(auth.DefaultTokenSource()))
+			if err != nil {
+				return err
+			}
+
+			user, err := client.Users.Me(cmd.Context())
+			if err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat()
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), user)
+			}
+
+			tw := render.Table(cmd.OutOrStdout())
+			_, _ = fmt.Fprintf(tw, "ID\t%s\n", user.ID)
+			if user.Name != "" {
+				_, _ = fmt.Fprintf(tw, "Name\t%s\n", user.Name)
+			}
+			if user.Phone != "" {
+				_, _ = fmt.Fprintf(tw, "Phone\t%s\n", user.Phone)
+			}
+			return tw.Flush()
 		},
 	}
 }
