@@ -2,6 +2,7 @@ package spot
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -149,4 +150,67 @@ func TestSearchesService_Delete(t *testing.T) {
 
 	err = c.Searches.Delete(context.Background(), "srch_abc")
 	require.NoError(t, err)
+}
+
+func TestSearchesService_Create(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/searches", r.URL.Path)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		assert.EqualValues(t, 2, got["party"])
+		assert.Equal(t, "2026-05-01", got["startDate"])
+		assert.Equal(t, "2026-05-01", got["endDate"])
+		assert.Equal(t, "18:00:00", got["startTime"])
+		assert.Equal(t, "21:00:00", got["endTime"])
+		restaurants, ok := got["restaurants"].([]any)
+		require.True(t, ok)
+		assert.Len(t, restaurants, 2)
+		assert.Equal(t, "rst_abc", restaurants[0])
+		assert.Equal(t, "rst_def", restaurants[1])
+		// No "upgrade" field in the request body — morty rejects it on create.
+		_, hasUpgrade := got["upgrade"]
+		assert.False(t, hasUpgrade, "CreateSearchParams must not send upgrade on create")
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"search":{"id":"srch_new","party":2,"startDate":"2026-05-01","endDate":"2026-05-01","startTime":"18:00:00","endTime":"21:00:00"}}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	params := &CreateSearchParams{
+		Party:       2,
+		StartDate:   "2026-05-01",
+		EndDate:     "2026-05-01",
+		StartTime:   "18:00:00",
+		EndTime:     "21:00:00",
+		Restaurants: []string{"rst_abc", "rst_def"},
+	}
+
+	created, err := c.Searches.Create(context.Background(), params)
+	require.NoError(t, err)
+	assert.Equal(t, "srch_new", created.ID)
+	assert.Equal(t, 2, created.Party)
+}
+
+func TestSearchesService_Create_ValidationError(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		_, _ = io.WriteString(w, `{"error":"party must be positive"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	_, err = c.Searches.Create(context.Background(), &CreateSearchParams{Party: 0})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrValidation)
 }
