@@ -32,13 +32,6 @@ type SearchTarget struct {
 	Restaurant *Restaurant `json:"restaurant,omitempty"`
 }
 
-// Restaurant is a restaurant the SDK cares to reference.
-// Fields will grow as more commands need them.
-type Restaurant struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-}
-
 // searchesListResponse matches the {"searches": [...]} envelope returned by the API.
 type searchesListResponse struct {
 	Searches []Search `json:"searches"`
