@@ -20,6 +20,7 @@ func newSearchesCmd(flags *rootFlags) *cobra.Command {
 	cmd.AddCommand(newSearchesListCmd(flags))
 	cmd.AddCommand(newSearchesGetCmd(flags))
 	cmd.AddCommand(newSearchesDeleteCmd(flags))
+	cmd.AddCommand(newSearchesCreateCmd(flags))
 
 	return cmd
 }
@@ -180,4 +181,72 @@ func newSearchesDeleteCmd(flags *rootFlags) *cobra.Command {
 			return err
 		},
 	}
+}
+
+func newSearchesCreateCmd(flags *rootFlags) *cobra.Command {
+	var (
+		party       int
+		date        string
+		startTime   string
+		endTime     string
+		restaurants []string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "create",
+		Short: "Create a new reservation search",
+		Long: "Creates a new reservation search with the given party size, date, time\n" +
+			"window, and restaurant IDs. Use 'spot restaurants search <query>' to find\n" +
+			"restaurant IDs.",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := newClient()
+			if err != nil {
+				return err
+			}
+
+			params := &spot.CreateSearchParams{
+				Party:       party,
+				StartDate:   date,
+				EndDate:     date,
+				StartTime:   expandTime(startTime),
+				EndTime:     expandTime(endTime),
+				Restaurants: restaurants,
+			}
+
+			created, err := client.Searches.Create(cmd.Context(), params)
+			if err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat(cmd.OutOrStdout())
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), created)
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Search created: %s\n", created.ID)
+			return err
+		},
+	}
+
+	cmd.Flags().IntVar(&party, "party", 0, "party size (required)")
+	cmd.Flags().StringVar(&date, "date", "", "search date YYYY-MM-DD (required)")
+	cmd.Flags().StringVar(&startTime, "start-time", "", "earliest time HH:MM or HH:MM:SS (required)")
+	cmd.Flags().StringVar(&endTime, "end-time", "", "latest time HH:MM or HH:MM:SS (required)")
+	cmd.Flags().StringSliceVar(&restaurants, "restaurant", nil, "restaurant ID (repeatable; at least one required)")
+	_ = cmd.MarkFlagRequired("party")
+	_ = cmd.MarkFlagRequired("date")
+	_ = cmd.MarkFlagRequired("start-time")
+	_ = cmd.MarkFlagRequired("end-time")
+	_ = cmd.MarkFlagRequired("restaurant")
+
+	return cmd
+}
+
+// expandTime accepts "HH:MM" and normalizes to "HH:MM:SS" by appending ":00".
+// Strings of any other length (including already-normalized "HH:MM:SS") pass
+// through unchanged; the server validates the final format.
+func expandTime(t string) string {
+	if len(t) == 5 && t[2] == ':' {
+		return t + ":00"
+	}
+	return t
 }
