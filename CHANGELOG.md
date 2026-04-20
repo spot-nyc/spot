@@ -53,10 +53,10 @@ Full OAuth flow works end-to-end against real Supabase + real morty:
 - `spot searches get <id>` — detail view with key-value layout (full ID, party, date, time range, upgrade, restaurants).
 - `spot searches create` — flag-driven creation (`--party`, `--date`, `--start-time`, `--end-time`, `--restaurant`). Times accept both `HH:MM` and `HH:MM:SS`. No `--upgrade` flag (server rejects on create; use `searches update` in M6).
 - `spot searches delete <id>` — idempotent deletion confirmation.
-- `spot reservations list` — upcoming reservations table with restaurant name, date, time, party.
+- `spot reservations list` — upcoming reservations table with restaurant name, date, time, party, and seating type (e.g. "Dining Room", "Bar").
 - `spot reservations cancel <id>` — cancel a booked reservation.
-- `spot restaurants search <query>` — look up restaurants by name; full IDs shown for copy-paste into `searches create`.
+- `spot restaurants search <query>` — look up restaurants by name; full IDs shown for copy-paste into `searches create`. Columns: `ID`, `NAME`, `CUISINE`, `NEIGHBORHOOD`, `PLATFORMS`.
 - `SearchesService.Get` / `Create` / `Delete` library methods + `CreateSearchParams`.
-- `ReservationsService` + `Reservation` / `Table` types.
-- `RestaurantsService` with `Search` method; `Restaurant` extracted to `restaurants.go` and extended with `Platform` / `Zone` / `Cuisine` / `Address` fields.
+- `ReservationsService` + `Reservation` / `Table` types; `Table.Seating` surfaces the seated area.
+- `RestaurantsService` with `Search` method; `Restaurant` extracted to `restaurants.go` with `Neighborhood` / `Cuisine` / `Zone` / `Address` plus per-platform `ResyActive` / `OpenTableActive` / `SevenRoomsActive` / `DoorDashActive` booleans and a `Platforms()` helper.
 - 6 new end-to-end CLI integration tests, one per new command.

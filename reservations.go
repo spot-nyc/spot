@@ -26,6 +26,7 @@ type Table struct {
 	Date         string      `json:"date"`
 	Time         string      `json:"time"`
 	Party        int         `json:"party"`
+	Seating      string      `json:"seating,omitempty"`
 	Restaurant   *Restaurant `json:"restaurant,omitempty"`
 }
 

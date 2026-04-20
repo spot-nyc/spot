@@ -11,14 +11,38 @@ type RestaurantsService struct {
 }
 
 // Restaurant is a restaurant in the Spot catalog. Fields grow as more commands
-// need them; missing fields are omitted from JSON.
+// need them; missing string fields are omitted from JSON. The "*Active"
+// booleans indicate which booking platforms currently monitor this restaurant.
 type Restaurant struct {
-	ID       string `json:"id"`
-	Name     string `json:"name"`
-	Platform string `json:"platform,omitempty"`
-	Zone     string `json:"zone,omitempty"`
-	Cuisine  string `json:"cuisine,omitempty"`
-	Address  string `json:"address,omitempty"`
+	ID               string `json:"id"`
+	Name             string `json:"name"`
+	Neighborhood     string `json:"neighborhood,omitempty"`
+	Cuisine          string `json:"cuisine,omitempty"`
+	Zone             string `json:"zone,omitempty"`
+	Address          string `json:"address,omitempty"`
+	ResyActive       bool   `json:"resyActive"`
+	OpenTableActive  bool   `json:"openTableActive"`
+	SevenRoomsActive bool   `json:"sevenRoomsActive"`
+	DoorDashActive   bool   `json:"doorDashActive"`
+}
+
+// Platforms returns the display names of the booking platforms currently
+// active for this restaurant, in a stable order.
+func (r Restaurant) Platforms() []string {
+	platforms := make([]string, 0, 4)
+	if r.ResyActive {
+		platforms = append(platforms, "Resy")
+	}
+	if r.OpenTableActive {
+		platforms = append(platforms, "OpenTable")
+	}
+	if r.SevenRoomsActive {
+		platforms = append(platforms, "SevenRooms")
+	}
+	if r.DoorDashActive {
+		platforms = append(platforms, "DoorDash")
+	}
+	return platforms
 }
 
 type restaurantsSearchRequest struct {

@@ -46,18 +46,23 @@ func newReservationsListCmd(flags *rootFlags) *cobra.Command {
 			}
 
 			tw := render.Table(cmd.OutOrStdout())
-			_, _ = fmt.Fprintln(tw, "ID\tRESTAURANT\tDATE\tTIME\tPARTY")
+			_, _ = fmt.Fprintln(tw, "ID\tRESTAURANT\tDATE\tTIME\tPARTY\tSEATING")
 			for _, r := range reservations {
 				restaurantName := "—"
 				if r.Table.Restaurant != nil && r.Table.Restaurant.Name != "" {
 					restaurantName = r.Table.Restaurant.Name
 				}
-				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%d\n",
+				seating := r.Table.Seating
+				if seating == "" {
+					seating = "—"
+				}
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%d\t%s\n",
 					r.ID,
 					restaurantName,
 					formatDate(r.Table.Date),
 					formatTime(r.Table.Time),
 					r.Table.Party,
+					seating,
 				)
 			}
 			return tw.Flush()

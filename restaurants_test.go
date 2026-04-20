@@ -26,8 +26,28 @@ func TestRestaurantsService_Search(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{
 			"restaurants": [
-				{"id": "rst_abc", "name": "Gramercy Tavern", "platform": "resy", "zone": "NYC"},
-				{"id": "rst_def", "name": "Gramercy Park Hotel", "platform": "opentable", "zone": "NYC"}
+				{
+					"id": "rst_abc",
+					"name": "Gramercy Tavern",
+					"neighborhood": "Flatiron",
+					"cuisine": "American",
+					"zone": "NYC",
+					"resyActive": true,
+					"openTableActive": false,
+					"sevenRoomsActive": false,
+					"doorDashActive": false
+				},
+				{
+					"id": "rst_def",
+					"name": "Gramercy Park Hotel",
+					"neighborhood": "Gramercy",
+					"cuisine": "Hotel",
+					"zone": "NYC",
+					"resyActive": false,
+					"openTableActive": true,
+					"sevenRoomsActive": false,
+					"doorDashActive": false
+				}
 			]
 		}`)
 	}))
@@ -41,8 +61,42 @@ func TestRestaurantsService_Search(t *testing.T) {
 	require.Len(t, results, 2)
 	assert.Equal(t, "rst_abc", results[0].ID)
 	assert.Equal(t, "Gramercy Tavern", results[0].Name)
-	assert.Equal(t, "resy", results[0].Platform)
+	assert.Equal(t, "Flatiron", results[0].Neighborhood)
+	assert.Equal(t, "American", results[0].Cuisine)
 	assert.Equal(t, "NYC", results[0].Zone)
+	assert.True(t, results[0].ResyActive)
+	assert.False(t, results[0].OpenTableActive)
+	assert.Equal(t, []string{"Resy"}, results[0].Platforms())
+	assert.Equal(t, []string{"OpenTable"}, results[1].Platforms())
+}
+
+func TestRestaurant_Platforms(t *testing.T) {
+	cases := []struct {
+		name       string
+		restaurant Restaurant
+		want       []string
+	}{
+		{"none active", Restaurant{}, []string{}},
+		{"resy only", Restaurant{ResyActive: true}, []string{"Resy"}},
+		{"opentable only", Restaurant{OpenTableActive: true}, []string{"OpenTable"}},
+		{"sevenrooms only", Restaurant{SevenRoomsActive: true}, []string{"SevenRooms"}},
+		{"doordash only", Restaurant{DoorDashActive: true}, []string{"DoorDash"}},
+		{
+			"all active",
+			Restaurant{ResyActive: true, OpenTableActive: true, SevenRoomsActive: true, DoorDashActive: true},
+			[]string{"Resy", "OpenTable", "SevenRooms", "DoorDash"},
+		},
+		{
+			"resy and doordash",
+			Restaurant{ResyActive: true, DoorDashActive: true},
+			[]string{"Resy", "DoorDash"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.restaurant.Platforms())
+		})
+	}
 }
 
 func TestRestaurantsService_Search_Empty(t *testing.T) {

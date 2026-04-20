@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -48,17 +49,21 @@ func newRestaurantsSearchCmd(flags *rootFlags) *cobra.Command {
 			}
 
 			tw := render.Table(cmd.OutOrStdout())
-			_, _ = fmt.Fprintln(tw, "ID\tNAME\tPLATFORM\tZONE")
+			_, _ = fmt.Fprintln(tw, "ID\tNAME\tCUISINE\tNEIGHBORHOOD\tPLATFORMS")
 			for _, r := range results {
-				platform := r.Platform
-				if platform == "" {
-					platform = "—"
+				cuisine := r.Cuisine
+				if cuisine == "" {
+					cuisine = "—"
 				}
-				zone := r.Zone
-				if zone == "" {
-					zone = "—"
+				neighborhood := r.Neighborhood
+				if neighborhood == "" {
+					neighborhood = "—"
 				}
-				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, r.Name, platform, zone)
+				platforms := strings.Join(r.Platforms(), ", ")
+				if platforms == "" {
+					platforms = "—"
+				}
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\n", r.ID, r.Name, cuisine, neighborhood, platforms)
 			}
 			return tw.Flush()
 		},

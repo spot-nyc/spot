@@ -262,7 +262,7 @@ func TestCLI_ReservationsList_JSON(t *testing.T) {
 		assert.Equal(t, "/searches/bookings", r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"reservations":[{"id":"rsv_1","table":{"date":"2026-05-01","time":"19:00:00","party":2,"restaurant":{"id":"r1","name":"Gramercy Tavern"}}}]}`)
+		_, _ = io.WriteString(w, `{"reservations":[{"id":"rsv_1","table":{"date":"2026-05-01","time":"19:00:00","party":2,"seating":"Dining Room","restaurant":{"id":"r1","name":"Gramercy Tavern"}}}]}`)
 	}))
 	defer srv.Close()
 
@@ -277,6 +277,7 @@ func TestCLI_ReservationsList_JSON(t *testing.T) {
 	require.Len(t, got, 1)
 	assert.Equal(t, "rsv_1", got[0].ID)
 	assert.Equal(t, "Gramercy Tavern", got[0].Table.Restaurant.Name)
+	assert.Equal(t, "Dining Room", got[0].Table.Seating)
 }
 
 func TestCLI_ReservationsCancel(t *testing.T) {
@@ -311,7 +312,7 @@ func TestCLI_RestaurantsSearch_JSON(t *testing.T) {
 		assert.Equal(t, "gramercy", got["query"])
 
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"restaurants":[{"id":"rst_abc","name":"Gramercy Tavern","platform":"resy","zone":"NYC"}]}`)
+		_, _ = io.WriteString(w, `{"restaurants":[{"id":"rst_abc","name":"Gramercy Tavern","neighborhood":"Flatiron","cuisine":"American","zone":"NYC","resyActive":true,"openTableActive":false,"sevenRoomsActive":false,"doorDashActive":false}]}`)
 	}))
 	defer srv.Close()
 
@@ -325,5 +326,8 @@ func TestCLI_RestaurantsSearch_JSON(t *testing.T) {
 	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
 	require.Len(t, got, 1)
 	assert.Equal(t, "rst_abc", got[0].ID)
-	assert.Equal(t, "resy", got[0].Platform)
+	assert.Equal(t, "Flatiron", got[0].Neighborhood)
+	assert.Equal(t, "American", got[0].Cuisine)
+	assert.True(t, got[0].ResyActive)
+	assert.Equal(t, []string{"Resy"}, got[0].Platforms())
 }
