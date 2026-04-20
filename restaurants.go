@@ -16,10 +16,10 @@ type RestaurantsService struct {
 type Restaurant struct {
 	ID               string `json:"id"`
 	Name             string `json:"name"`
-	Neighborhood     string `json:"neighborhood,omitempty"`
 	Cuisine          string `json:"cuisine,omitempty"`
-	Zone             string `json:"zone,omitempty"`
 	Address          string `json:"address,omitempty"`
+	Neighborhood     string `json:"neighborhood,omitempty"`
+	Zone             string `json:"zone,omitempty"`
 	ResyActive       bool   `json:"resyActive"`
 	OpenTableActive  bool   `json:"openTableActive"`
 	SevenRoomsActive bool   `json:"sevenRoomsActive"`

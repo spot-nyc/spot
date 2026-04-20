@@ -24,11 +24,11 @@ type Reservation struct {
 // nested Restaurant is always populated by the API.
 type Table struct {
 	ID         string      `json:"id"`
-	Platform   string      `json:"platform,omitempty"`
 	Date       string      `json:"date"`
 	Time       string      `json:"time"`
 	Party      int         `json:"party"`
 	Seating    string      `json:"seating,omitempty"`
+	Platform   string      `json:"platform,omitempty"`
 	Restaurant *Restaurant `json:"restaurant,omitempty"`
 }
 

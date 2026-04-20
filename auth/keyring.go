@@ -10,7 +10,7 @@ import (
 // KeyringServiceName is the service identifier used when storing credentials
 // in the OS keychain. macOS Keychain groups by service; Linux libsecret uses
 // it as the collection key; Windows Credential Manager uses it as the target.
-const KeyringServiceName = "com.spot-nyc.cli"
+const KeyringServiceName = "nyc.spot.cli"
 
 // DefaultKeyringAccount is the account identifier used when no explicit
 // account is supplied. Enables per-profile accounts in the future.

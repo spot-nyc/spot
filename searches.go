@@ -14,11 +14,11 @@ type SearchesService struct {
 type Search struct {
 	ID            string         `json:"id"`
 	UserID        string         `json:"userId"`
-	Party         int            `json:"party"`
 	StartDate     string         `json:"startDate"`
 	EndDate       string         `json:"endDate"`
 	StartTime     string         `json:"startTime"`
 	EndTime       string         `json:"endTime"`
+	Party         int            `json:"party"`
 	Upgrade       bool           `json:"upgrade"`
 	CreatedAt     string         `json:"createdAt,omitempty"`
 	UpdatedAt     string         `json:"updatedAt,omitempty"`
