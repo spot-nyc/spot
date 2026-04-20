@@ -64,3 +64,32 @@ func TestReservationsService_List(t *testing.T) {
 	assert.Equal(t, "rsv_def", reservations[1].ID)
 	assert.False(t, reservations[1].Cancelled)
 }
+
+func TestReservationsService_Cancel(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/reservations/rsv_abc/cancel", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Reservations.Cancel(context.Background(), "rsv_abc")
+	require.NoError(t, err)
+}
+
+func TestReservationsService_Cancel_NotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, `{"error":"Reservation not found"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Reservations.Cancel(context.Background(), "rsv_missing")
+	require.Error(t, err)
+}

@@ -42,3 +42,8 @@ func (s *ReservationsService) List(ctx context.Context) ([]Reservation, error) {
 	}
 	return resp.Reservations, nil
 }
+
+// Cancel cancels an upcoming reservation by ID. Succeeds on 2xx responses.
+func (s *ReservationsService) Cancel(ctx context.Context, id string) error {
+	return s.client.do(ctx, http.MethodPost, "/reservations/"+id+"/cancel", nil, nil)
+}
