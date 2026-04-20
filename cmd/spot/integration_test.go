@@ -54,7 +54,7 @@ func TestCLI_SearchesList_JSON(t *testing.T) {
 					"endTime": "21:00:00",
 					"upgrade": false,
 					"searchTargets": [
-						{"id": "t1", "rank": 0, "restaurant": {"id": "r1", "name": "Gramercy Tavern"}}
+						{"upgrade": false, "restaurant": {"id": "r1", "name": "Gramercy Tavern"}}
 					]
 				}
 			]
