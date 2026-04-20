@@ -24,9 +24,10 @@ type Client struct {
 	tokenSource oauth2.TokenSource
 
 	// Services
-	Users       *UsersService
-	Searches    *SearchesService
-	Restaurants *RestaurantsService
+	Users        *UsersService
+	Searches     *SearchesService
+	Restaurants  *RestaurantsService
+	Reservations *ReservationsService
 }
 
 // NewClient constructs a Client. A token source is required; provide one via
@@ -56,6 +57,7 @@ func NewClient(opts ...Option) (*Client, error) {
 	c.Users = &UsersService{client: c}
 	c.Searches = &SearchesService{client: c}
 	c.Restaurants = &RestaurantsService{client: c}
+	c.Reservations = &ReservationsService{client: c}
 	return c, nil
 }
 
