@@ -48,3 +48,15 @@ Full OAuth flow works end-to-end against real Supabase + real morty:
 - `SearchesService.List` + `Search` / `SearchTarget` / `Restaurant` types in the library.
 - `SPOT_BASE_URL` env var for overriding the API base URL (primarily for testing).
 - End-to-end CLI integration tests covering the full `cobra → Client → httptest → render` pipeline.
+
+### Added (M3 — Tier 1 complete)
+- `spot searches get <id>` — detail view with key-value layout (full ID, party, date, time range, upgrade, restaurants).
+- `spot searches create` — flag-driven creation (`--party`, `--date`, `--start-time`, `--end-time`, `--restaurant`). Times accept both `HH:MM` and `HH:MM:SS`. No `--upgrade` flag (server rejects on create; use `searches update` in M6).
+- `spot searches delete <id>` — idempotent deletion confirmation.
+- `spot reservations list` — upcoming reservations table with restaurant name, date, time, party.
+- `spot reservations cancel <id>` — cancel a booked reservation.
+- `spot restaurants search <query>` — look up restaurants by name; full IDs shown for copy-paste into `searches create`.
+- `SearchesService.Get` / `Create` / `Delete` library methods + `CreateSearchParams`.
+- `ReservationsService` + `Reservation` / `Table` types.
+- `RestaurantsService` with `Search` method; `Restaurant` extracted to `restaurants.go` and extended with `Platform` / `Zone` / `Cuisine` / `Address` fields.
+- 6 new end-to-end CLI integration tests, one per new command.
