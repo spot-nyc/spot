@@ -24,6 +24,7 @@ func TestReservationsService_List(t *testing.T) {
 					"userId": "u1",
 					"table": {
 						"id": "tbl_1",
+						"platform": "resy",
 						"date": "2026-05-01",
 						"time": "19:00:00",
 						"party": 2,
@@ -37,6 +38,7 @@ func TestReservationsService_List(t *testing.T) {
 					"cancelled": false,
 					"table": {
 						"id": "tbl_2",
+						"platform": "opentable",
 						"date": "2026-05-15",
 						"time": "20:30:00",
 						"party": 4,
@@ -61,12 +63,14 @@ func TestReservationsService_List(t *testing.T) {
 	assert.Equal(t, "19:00:00", reservations[0].Table.Time)
 	assert.Equal(t, 2, reservations[0].Table.Party)
 	assert.Equal(t, "Dining Room", reservations[0].Table.Seating)
+	assert.Equal(t, "resy", reservations[0].Table.Platform)
 	require.NotNil(t, reservations[0].Table.Restaurant)
 	assert.Equal(t, "Gramercy Tavern", reservations[0].Table.Restaurant.Name)
 
 	assert.Equal(t, "rsv_def", reservations[1].ID)
 	assert.False(t, reservations[1].Cancelled)
 	assert.Equal(t, "Bar", reservations[1].Table.Seating)
+	assert.Equal(t, "opentable", reservations[1].Table.Platform)
 }
 
 func TestReservationsService_Cancel(t *testing.T) {

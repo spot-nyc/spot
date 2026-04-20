@@ -262,7 +262,7 @@ func TestCLI_ReservationsList_JSON(t *testing.T) {
 		assert.Equal(t, "/searches/bookings", r.URL.Path)
 
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"reservations":[{"id":"rsv_1","table":{"date":"2026-05-01","time":"19:00:00","party":2,"seating":"Dining Room","restaurant":{"id":"r1","name":"Gramercy Tavern"}}}]}`)
+		_, _ = io.WriteString(w, `{"reservations":[{"id":"rsv_1","table":{"platform":"resy","date":"2026-05-01","time":"19:00:00","party":2,"seating":"Dining Room","restaurant":{"id":"r1","name":"Gramercy Tavern"}}}]}`)
 	}))
 	defer srv.Close()
 
@@ -278,6 +278,7 @@ func TestCLI_ReservationsList_JSON(t *testing.T) {
 	assert.Equal(t, "rsv_1", got[0].ID)
 	assert.Equal(t, "Gramercy Tavern", got[0].Table.Restaurant.Name)
 	assert.Equal(t, "Dining Room", got[0].Table.Seating)
+	assert.Equal(t, "resy", got[0].Table.Platform)
 }
 
 func TestCLI_ReservationsCancel(t *testing.T) {
