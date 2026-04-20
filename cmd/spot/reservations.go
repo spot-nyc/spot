@@ -52,7 +52,7 @@ func newReservationsListCmd(flags *rootFlags) *cobra.Command {
 				if r.Table.Restaurant != nil && r.Table.Restaurant.Name != "" {
 					restaurantName = r.Table.Restaurant.Name
 				}
-				seating := r.Table.Seating
+				seating := formatSeating(r.Table.Seating)
 				if seating == "" {
 					seating = "—"
 				}

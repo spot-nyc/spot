@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/spf13/cobra"
 
@@ -81,6 +83,36 @@ func formatDate(d string) string {
 		return parsed.Format("Jan 2, 2006")
 	}
 	return d
+}
+
+// formatSeating normalizes the raw seating string morty returns for display.
+// OpenTable stores its default dining-area slots as "default"; we surface
+// that as "Dining Room" to match the mobile client. Other values are
+// title-cased (e.g. "bar" → "Bar"). Empty input returns empty so callers
+// can apply their own placeholder.
+func formatSeating(s string) string {
+	if s == "" {
+		return ""
+	}
+	if s == "default" {
+		return "Dining Room"
+	}
+	return titlecase(s)
+}
+
+// titlecase uppercases the first rune of each space-separated word, leaving
+// the rest untouched. Mirrors the mobile client's `titlecase` so seating
+// types render identically on CLI and mobile.
+func titlecase(s string) string {
+	words := strings.Split(s, " ")
+	for i, word := range words {
+		if word == "" {
+			continue
+		}
+		r, size := utf8.DecodeRuneInString(word)
+		words[i] = string(unicode.ToUpper(r)) + word[size:]
+	}
+	return strings.Join(words, " ")
 }
 
 // joinRestaurantNames flattens a search's targets into a comma-separated

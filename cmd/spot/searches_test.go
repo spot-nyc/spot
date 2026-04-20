@@ -47,6 +47,26 @@ func TestFormatDate(t *testing.T) {
 	}
 }
 
+func TestFormatSeating(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"", ""},
+		{"default", "Dining Room"},
+		{"bar", "Bar"},
+		{"dining room", "Dining Room"},
+		{"chef's counter", "Chef's Counter"},
+		{"Patio", "Patio"},
+		{"BAR", "BAR"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			assert.Equal(t, tc.want, formatSeating(tc.in))
+		})
+	}
+}
+
 func TestJoinRestaurantNames(t *testing.T) {
 	cases := []struct {
 		name    string
