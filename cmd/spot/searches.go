@@ -18,6 +18,7 @@ func newSearchesCmd(flags *rootFlags) *cobra.Command {
 	}
 
 	cmd.AddCommand(newSearchesListCmd(flags))
+	cmd.AddCommand(newSearchesGetCmd(flags))
 
 	return cmd
 }
@@ -110,4 +111,42 @@ func joinRestaurantNames(targets []spot.SearchTarget) string {
 		return "—"
 	}
 	return strings.Join(names, ", ")
+}
+
+func newSearchesGetCmd(flags *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "get <id>",
+		Short: "Show details for one of your searches",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := newClient()
+			if err != nil {
+				return err
+			}
+
+			search, err := client.Searches.Get(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat(cmd.OutOrStdout())
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), search)
+			}
+
+			upgrade := "no"
+			if search.Upgrade {
+				upgrade = "yes"
+			}
+
+			tw := render.Table(cmd.OutOrStdout())
+			_, _ = fmt.Fprintf(tw, "ID\t%s\n", search.ID)
+			_, _ = fmt.Fprintf(tw, "Party\t%d\n", search.Party)
+			_, _ = fmt.Fprintf(tw, "Date\t%s\n", formatDate(search.StartDate))
+			_, _ = fmt.Fprintf(tw, "Time\t%s – %s\n", formatTime(search.StartTime), formatTime(search.EndTime))
+			_, _ = fmt.Fprintf(tw, "Upgrade\t%s\n", upgrade)
+			_, _ = fmt.Fprintf(tw, "Restaurants\t%s\n", joinRestaurantNames(search.SearchTargets))
+			return tw.Flush()
+		},
+	}
 }
