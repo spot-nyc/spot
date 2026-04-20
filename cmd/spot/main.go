@@ -38,6 +38,7 @@ func newRootCmd() *cobra.Command {
 
 	cmd.AddCommand(newAuthCmd(flags))
 	cmd.AddCommand(newSearchesCmd(flags))
+	cmd.AddCommand(newReservationsCmd(flags))
 
 	return cmd
 }
