@@ -177,3 +177,153 @@ func TestCLI_SearchesList_JSONOutputIsPureJSON(t *testing.T) {
 	got := strings.TrimRight(stdout.String(), "\n")
 	assert.True(t, strings.HasPrefix(got, "["), "expected JSON array, got: %q", got)
 }
+
+func TestCLI_SearchesGet_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"search":{"id":"srch_abc","party":2,"startDate":"2026-05-01","endDate":"2026-05-01","startTime":"18:00:00","endTime":"21:00:00"}}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"searches", "get", "srch_abc", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got spot.Search
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	assert.Equal(t, "srch_abc", got.ID)
+}
+
+func TestCLI_SearchesDelete(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"searches", "delete", "srch_abc", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	assert.Equal(t, true, got["deleted"])
+	assert.Equal(t, "srch_abc", got["id"])
+}
+
+func TestCLI_SearchesCreate(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/searches", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		assert.EqualValues(t, 2, got["party"])
+		assert.Equal(t, "18:00:00", got["startTime"], "time flag should be expanded to HH:MM:SS")
+		assert.Equal(t, "21:00:00", got["endTime"])
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"search":{"id":"srch_new","party":2}}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{
+		"searches", "create",
+		"--party", "2",
+		"--date", "2026-05-01",
+		"--start-time", "18:00",
+		"--end-time", "21:00",
+		"--restaurant", "rst_abc",
+		"--restaurant", "rst_def",
+		"--json",
+	})
+
+	require.NoError(t, cmd.Execute())
+
+	var got spot.Search
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	assert.Equal(t, "srch_new", got.ID)
+}
+
+func TestCLI_ReservationsList_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/searches/bookings", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"reservations":[{"id":"rsv_1","table":{"date":"2026-05-01","time":"19:00:00","party":2,"restaurant":{"id":"r1","name":"Gramercy Tavern"}}}]}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"reservations", "list", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got []spot.Reservation
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	require.Len(t, got, 1)
+	assert.Equal(t, "rsv_1", got[0].ID)
+	assert.Equal(t, "Gramercy Tavern", got[0].Table.Restaurant.Name)
+}
+
+func TestCLI_ReservationsCancel(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/reservations/rsv_abc/cancel", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"reservations", "cancel", "rsv_abc", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got map[string]any
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	assert.Equal(t, true, got["cancelled"])
+	assert.Equal(t, "rsv_abc", got["id"])
+}
+
+func TestCLI_RestaurantsSearch_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/restaurants/search", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		assert.Equal(t, "gramercy", got["query"])
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"restaurants":[{"id":"rst_abc","name":"Gramercy Tavern","platform":"resy","zone":"NYC"}]}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"restaurants", "search", "gramercy", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got []spot.Restaurant
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	require.Len(t, got, 1)
+	assert.Equal(t, "rst_abc", got[0].ID)
+	assert.Equal(t, "resy", got[0].Platform)
+}
