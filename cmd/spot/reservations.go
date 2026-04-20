@@ -15,6 +15,7 @@ func newReservationsCmd(flags *rootFlags) *cobra.Command {
 	}
 
 	cmd.AddCommand(newReservationsListCmd(flags))
+	cmd.AddCommand(newReservationsCancelCmd(flags))
 
 	return cmd
 }
@@ -60,6 +61,36 @@ func newReservationsListCmd(flags *rootFlags) *cobra.Command {
 				)
 			}
 			return tw.Flush()
+		},
+	}
+}
+
+func newReservationsCancelCmd(flags *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "cancel <id>",
+		Short: "Cancel an upcoming reservation",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id := args[0]
+
+			client, err := newClient()
+			if err != nil {
+				return err
+			}
+
+			if err := client.Reservations.Cancel(cmd.Context(), id); err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat(cmd.OutOrStdout())
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), map[string]any{
+					"cancelled": true,
+					"id":        id,
+				})
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Reservation %s cancelled.\n", id)
+			return err
 		},
 	}
 }
