@@ -2,6 +2,7 @@ package spot
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -80,4 +81,72 @@ func TestSearchesService_List_Unauthenticated(t *testing.T) {
 	_, err = c.Searches.List(context.Background())
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrUnauthenticated)
+}
+
+func TestSearchesService_Get(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"search": {
+				"id": "srch_abc",
+				"userId": "u1",
+				"party": 2,
+				"startDate": "2026-05-01",
+				"endDate": "2026-05-01",
+				"startTime": "18:00:00",
+				"endTime": "21:00:00",
+				"upgrade": false,
+				"searchTargets": [
+					{"id": "t1", "rank": 0, "restaurant": {"id": "r1", "name": "Gramercy Tavern"}}
+				]
+			}
+		}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	search, err := c.Searches.Get(context.Background(), "srch_abc")
+	require.NoError(t, err)
+	assert.Equal(t, "srch_abc", search.ID)
+	assert.Equal(t, 2, search.Party)
+	require.Len(t, search.SearchTargets, 1)
+	assert.Equal(t, "Gramercy Tavern", search.SearchTargets[0].Restaurant.Name)
+}
+
+func TestSearchesService_Get_NotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, `{"error":"Search not found"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	_, err = c.Searches.Get(context.Background(), "missing")
+	require.Error(t, err)
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, "not_found", spotErr.Code)
+	assert.Equal(t, http.StatusNotFound, spotErr.HTTPStatus)
+}
+
+func TestSearchesService_Delete(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Searches.Delete(context.Background(), "srch_abc")
+	require.NoError(t, err)
 }

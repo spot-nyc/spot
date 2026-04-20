@@ -44,6 +44,11 @@ type searchesListResponse struct {
 	Searches []Search `json:"searches"`
 }
 
+// searchDetailResponse matches the {"search": {...}} envelope for single-search reads.
+type searchDetailResponse struct {
+	Search Search `json:"search"`
+}
+
 // List returns the authenticated user's active searches.
 func (s *SearchesService) List(ctx context.Context) ([]Search, error) {
 	var resp searchesListResponse
@@ -51,4 +56,18 @@ func (s *SearchesService) List(ctx context.Context) ([]Search, error) {
 		return nil, err
 	}
 	return resp.Searches, nil
+}
+
+// Get fetches a single search by ID.
+func (s *SearchesService) Get(ctx context.Context, id string) (*Search, error) {
+	var resp searchDetailResponse
+	if err := s.client.do(ctx, http.MethodGet, "/searches/"+id, nil, &resp); err != nil {
+		return nil, err
+	}
+	return &resp.Search, nil
+}
+
+// Delete removes a search by ID. Succeeds on 2xx responses (including 204).
+func (s *SearchesService) Delete(ctx context.Context, id string) error {
+	return s.client.do(ctx, http.MethodDelete, "/searches/"+id, nil, nil)
 }
