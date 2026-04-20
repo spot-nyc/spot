@@ -8,6 +8,12 @@ on:
 permissions:
   contents: read
 
+env:
+  # Opt into Node 24 for JS-based actions; Node 20 is deprecated and will be
+  # removed from runners on 2026-09-16. Remove once the runner defaults flip
+  # on 2026-06-02.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   test:
     name: test
