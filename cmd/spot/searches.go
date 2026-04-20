@@ -19,6 +19,7 @@ func newSearchesCmd(flags *rootFlags) *cobra.Command {
 
 	cmd.AddCommand(newSearchesListCmd(flags))
 	cmd.AddCommand(newSearchesGetCmd(flags))
+	cmd.AddCommand(newSearchesDeleteCmd(flags))
 
 	return cmd
 }
@@ -147,6 +148,36 @@ func newSearchesGetCmd(flags *rootFlags) *cobra.Command {
 			_, _ = fmt.Fprintf(tw, "Upgrade\t%s\n", upgrade)
 			_, _ = fmt.Fprintf(tw, "Restaurants\t%s\n", joinRestaurantNames(search.SearchTargets))
 			return tw.Flush()
+		},
+	}
+}
+
+func newSearchesDeleteCmd(flags *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "delete <id>",
+		Short: "Delete one of your searches",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			id := args[0]
+
+			client, err := newClient()
+			if err != nil {
+				return err
+			}
+
+			if err := client.Searches.Delete(cmd.Context(), id); err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat(cmd.OutOrStdout())
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), map[string]any{
+					"deleted": true,
+					"id":      id,
+				})
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Search %s deleted.\n", id)
+			return err
 		},
 	}
 }
