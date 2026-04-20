@@ -8,24 +8,6 @@ import (
 	"github.com/spot-nyc/spot"
 )
 
-func TestShortID(t *testing.T) {
-	cases := []struct {
-		in   string
-		want string
-	}{
-		{"", ""},
-		{"abc", "abc"},
-		{"abcdefgh", "abcdefgh"},
-		{"abcdefghi", "abcdefgh…"},
-		{"19ffde12-cb36-4db9-9252-66aade4dbb9a", "19ffde12…"},
-	}
-	for _, tc := range cases {
-		t.Run(tc.in, func(t *testing.T) {
-			assert.Equal(t, tc.want, shortID(tc.in))
-		})
-	}
-}
-
 func TestFormatTime(t *testing.T) {
 	cases := []struct {
 		in   string

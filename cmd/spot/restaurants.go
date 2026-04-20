@@ -58,8 +58,6 @@ func newRestaurantsSearchCmd(flags *rootFlags) *cobra.Command {
 				if zone == "" {
 					zone = "—"
 				}
-				// Full IDs here (not shortID) because users copy-paste them
-				// directly into 'searches create --restaurant <id>'.
 				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\n", r.ID, r.Name, platform, zone)
 			}
 			return tw.Flush()

@@ -53,7 +53,7 @@ func newReservationsListCmd(flags *rootFlags) *cobra.Command {
 					restaurantName = r.Table.Restaurant.Name
 				}
 				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%d\n",
-					shortID(r.ID),
+					r.ID,
 					restaurantName,
 					formatDate(r.Table.Date),
 					formatTime(r.Table.Time),

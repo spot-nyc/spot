@@ -55,23 +55,11 @@ func newSearchesListCmd(flags *rootFlags) *cobra.Command {
 			for _, s := range searches {
 				timeRange := formatTime(s.StartTime) + "–" + formatTime(s.EndTime)
 				_, _ = fmt.Fprintf(tw, "%s\t%d\t%s\t%s\t%s\n",
-					shortID(s.ID), s.Party, formatDate(s.StartDate), timeRange, joinRestaurantNames(s.SearchTargets))
+					s.ID, s.Party, formatDate(s.StartDate), timeRange, joinRestaurantNames(s.SearchTargets))
 			}
 			return tw.Flush()
 		},
 	}
-}
-
-// shortID returns a display-friendly abbreviation of an opaque ID. We show
-// the first 8 characters and append an ellipsis when the original is longer.
-// Raw IDs remain available via --json or `spot searches get <id>`.
-const shortIDLen = 8
-
-func shortID(id string) string {
-	if len(id) <= shortIDLen {
-		return id
-	}
-	return id[:shortIDLen] + "…"
 }
 
 // formatTime renders an "HH:MM:SS" or "HH:MM" string in 12-hour clock form

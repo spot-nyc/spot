@@ -40,7 +40,7 @@ Full OAuth flow works end-to-end against real Supabase + real morty:
 - `spot auth login` — browser-based PKCE sign-in, persists credentials to keyring/file.
 - `spot auth logout` — deletes locally-stored credentials (idempotent).
 - `spot auth whoami` — prints the currently-authenticated user profile.
-- `spot searches list` — lists active reservation searches with human-friendly formatting (truncated IDs, `May 1, 2026` dates, `6:00 PM–9:00 PM` times, restaurant names).
+- `spot searches list` — lists active reservation searches with human-friendly formatting (full IDs for copy-paste, `May 1, 2026` dates, `6:00 PM–9:00 PM` times, restaurant names).
 - Global `--json` / `-j` flag on every command; stdout format auto-detects based on TTY.
 - Stable, documented exit codes mapped from library error sentinels (3 unauth, 4 expired, 5 not-found, 6 conflict, 7 validation, 8 rate-limit, 9 server).
 - Friendlier table-mode messages for `ErrUnauthenticated` and `ErrAuthExpired` that tell users to run `spot auth login`.
