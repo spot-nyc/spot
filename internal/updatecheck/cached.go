@@ -35,3 +35,14 @@ func checkCachedWithBaseURL(ctx context.Context, currentVersion, cacheDir string
 
 	return latest, available, nil
 }
+
+// CheckCachedWithBaseURL is CheckCached with an overridable base URL for
+// tests. Production code uses CheckCached. Returns (latest, available) and
+// swallows errors — callers that care about errors should use CheckCached.
+func CheckCachedWithBaseURL(ctx context.Context, currentVersion, cacheDir string, ttl time.Duration, baseURL string) (string, bool) {
+	latest, available, err := checkCachedWithBaseURL(ctx, currentVersion, cacheDir, ttl, baseURL)
+	if err != nil {
+		return "", false
+	}
+	return latest, available
+}

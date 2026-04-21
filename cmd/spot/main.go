@@ -54,7 +54,11 @@ func (f *rootFlags) resolveFormat(out io.Writer) render.Format {
 
 func main() {
 	cmd := newRootCmd()
-	if err := cmd.Execute(); err != nil {
+	err := cmd.Execute()
+
+	runUpdateCheck(spot.Version)
+
+	if err != nil {
 		format := render.FormatTable
 		if jsonFlag := cmd.PersistentFlags().Lookup("json"); jsonFlag != nil && jsonFlag.Value.String() == "true" {
 			format = render.FormatJSON
