@@ -19,7 +19,6 @@ type Search struct {
 	StartTime     string         `json:"startTime"`
 	EndTime       string         `json:"endTime"`
 	Party         int            `json:"party"`
-	Upgrade       bool           `json:"upgrade"`
 	CreatedAt     string         `json:"createdAt,omitempty"`
 	UpdatedAt     string         `json:"updatedAt,omitempty"`
 	SearchTargets []SearchTarget `json:"searchTargets,omitempty"`
@@ -27,10 +26,8 @@ type Search struct {
 
 // SearchTarget is a restaurant attached to a search. search_targets has a
 // compound primary key of (searchId, restaurantId), so the target itself has
-// no surface-level ID worth exposing. Upgrade is the per-target upgrade
-// toggle: when true, morty will auto-book a better slot at this restaurant.
+// no surface-level ID worth exposing.
 type SearchTarget struct {
-	Upgrade    bool        `json:"upgrade"`
 	Restaurant *Restaurant `json:"restaurant,omitempty"`
 }
 

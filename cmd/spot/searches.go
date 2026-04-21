@@ -156,17 +156,11 @@ func newSearchesGetCmd(flags *rootFlags) *cobra.Command {
 				return render.JSON(cmd.OutOrStdout(), search)
 			}
 
-			upgrade := "no"
-			if search.Upgrade {
-				upgrade = "yes"
-			}
-
 			tw := render.Table(cmd.OutOrStdout())
 			_, _ = fmt.Fprintf(tw, "ID\t%s\n", search.ID)
 			_, _ = fmt.Fprintf(tw, "Party\t%d\n", search.Party)
 			_, _ = fmt.Fprintf(tw, "Date\t%s\n", formatDate(search.StartDate))
 			_, _ = fmt.Fprintf(tw, "Time\t%s – %s\n", formatTime(search.StartTime), formatTime(search.EndTime))
-			_, _ = fmt.Fprintf(tw, "Upgrade\t%s\n", upgrade)
 			_, _ = fmt.Fprintf(tw, "Restaurants\t%s\n", joinRestaurantNames(search.SearchTargets))
 			return tw.Flush()
 		},

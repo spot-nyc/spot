@@ -52,9 +52,8 @@ func TestCLI_SearchesList_JSON(t *testing.T) {
 					"endDate": "2026-05-01",
 					"startTime": "18:00:00",
 					"endTime": "21:00:00",
-					"upgrade": false,
 					"searchTargets": [
-						{"upgrade": false, "restaurant": {"id": "r1", "name": "Gramercy Tavern"}}
+						{"restaurant": {"id": "r1", "name": "Gramercy Tavern"}}
 					]
 				}
 			]

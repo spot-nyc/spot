@@ -30,9 +30,8 @@ func TestSearchesService_List(t *testing.T) {
 					"endDate": "2026-05-03",
 					"startTime": "18:00:00",
 					"endTime": "21:00:00",
-					"upgrade": false,
 					"searchTargets": [
-						{"upgrade": true, "restaurant": {"id": "rst_a", "name": "Gramercy Tavern"}}
+						{"restaurant": {"id": "rst_a", "name": "Gramercy Tavern"}}
 					]
 				},
 				{
@@ -43,7 +42,6 @@ func TestSearchesService_List(t *testing.T) {
 					"endDate": "2026-05-15",
 					"startTime": "19:00:00",
 					"endTime": "20:00:00",
-					"upgrade": true,
 					"searchTargets": []
 				}
 			]
@@ -63,10 +61,8 @@ func TestSearchesService_List(t *testing.T) {
 	assert.Equal(t, "2026-05-01", searches[0].StartDate)
 	require.Len(t, searches[0].SearchTargets, 1)
 	assert.Equal(t, "Gramercy Tavern", searches[0].SearchTargets[0].Restaurant.Name)
-	assert.True(t, searches[0].SearchTargets[0].Upgrade)
 
 	assert.Equal(t, "srch_def", searches[1].ID)
-	assert.True(t, searches[1].Upgrade)
 	assert.Empty(t, searches[1].SearchTargets)
 }
 
@@ -100,9 +96,8 @@ func TestSearchesService_Get(t *testing.T) {
 				"endDate": "2026-05-01",
 				"startTime": "18:00:00",
 				"endTime": "21:00:00",
-				"upgrade": false,
 				"searchTargets": [
-					{"upgrade": false, "restaurant": {"id": "r1", "name": "Gramercy Tavern"}}
+					{"restaurant": {"id": "r1", "name": "Gramercy Tavern"}}
 				]
 			}
 		}`)
