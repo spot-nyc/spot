@@ -64,15 +64,22 @@ func TestRunUpdateCheck_GraceTimeoutDoesNotPrint(t *testing.T) {
 	defer srv.Close()
 
 	var stderr bytes.Buffer
+	done := make(chan struct{})
 	runUpdateCheckWithOptions(context.Background(), updateCheckOptions{
 		currentVersion: "v0.1.0",
 		cacheDir:       t.TempDir(),
 		apiBaseURL:     srv.URL,
 		grace:          10 * time.Millisecond,
 		stderr:         &stderr,
+		done:           done,
 	})
 
 	if stderr.Len() != 0 {
 		t.Errorf("stderr should be empty when grace expires, got %q", stderr.String())
 	}
+
+	// Wait for the background goroutine to finish writing its cache entry
+	// before t.TempDir's cleanup runs. Otherwise cleanup races writeCache
+	// and fails with "directory not empty" on slower machines (e.g. CI).
+	<-done
 }

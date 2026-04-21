@@ -20,6 +20,12 @@ type updateCheckOptions struct {
 	apiBaseURL     string // empty => use updatecheck package default
 	grace          time.Duration
 	stderr         io.Writer
+	// done, if non-nil, is closed when the background goroutine finishes.
+	// Tests that use a scratch cacheDir set this and wait on it before
+	// returning so t.TempDir cleanup doesn't race writeCache. Production
+	// callers leave it nil — whatever the goroutine hasn't finished by
+	// os.Exit is discarded.
+	done chan<- struct{}
 }
 
 // runUpdateCheck fires an update check in a background goroutine and prints
@@ -53,6 +59,9 @@ func runUpdateCheckWithOptions(ctx context.Context, opts updateCheckOptions) {
 
 	ch := make(chan result, 1)
 	go func() {
+		if opts.done != nil {
+			defer close(opts.done)
+		}
 		checkCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
 		defer cancel()
 
