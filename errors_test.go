@@ -2,9 +2,13 @@ package spot
 
 import (
 	"errors"
+	"io"
+	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestError_Error(t *testing.T) {
@@ -33,6 +37,30 @@ func TestError_Is_NilSpotErrorTargetDoesNotMatch(t *testing.T) {
 	assert.False(t, errors.Is(e, nilTarget), "errors.Is should not match a nil *Error target")
 }
 
+func TestMapErrorResponse_SlotExpired(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: http.StatusGone,
+		Body:       io.NopCloser(strings.NewReader(`{"error":"slot no longer available"}`)),
+	}
+	err := mapErrorResponse(resp)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrSlotExpired)
+}
+
+func TestMapErrorResponse_PlatformNotConnected(t *testing.T) {
+	resp := &http.Response{
+		StatusCode: http.StatusPreconditionFailed,
+		Body:       io.NopCloser(strings.NewReader(`{"error":"platform not connected","platform":"resy"}`)),
+	}
+	err := mapErrorResponse(resp)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrPlatformNotConnected)
+
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, "resy", spotErr.Platform)
+}
+
 func TestSentinels_AllHaveCodes(t *testing.T) {
 	sentinels := []*Error{
 		ErrUnauthenticated,
@@ -45,6 +73,8 @@ func TestSentinels_AllHaveCodes(t *testing.T) {
 		ErrValidation,
 		ErrRateLimited,
 		ErrServer,
+		ErrSlotExpired,
+		ErrPlatformNotConnected,
 	}
 	seen := make(map[string]bool)
 	for _, s := range sentinels {

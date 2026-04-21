@@ -19,6 +19,9 @@ type Error struct {
 	HTTPStatus int
 	// Details is an optional server-provided detail blob.
 	Details map[string]any
+	// Platform is populated only for ErrPlatformNotConnected; names the specific
+	// booking platform that the authenticated user has not linked (e.g. "resy").
+	Platform string
 }
 
 // Error implements the error interface.
@@ -58,4 +61,13 @@ var (
 	ErrRateLimited = &Error{Code: "rate_limited", Message: "rate limited"}
 	// ErrServer means the server returned a 5xx response.
 	ErrServer = &Error{Code: "server_error", Message: "server error"}
+	// ErrSlotExpired means a ReservationSlot previously returned by
+	// ReservationsService.Search is no longer bookable — its short TTL passed,
+	// someone else booked it, or the booking provider rejected the token.
+	// Callers should re-run Search.
+	ErrSlotExpired = &Error{Code: "slot_expired", Message: "slot is no longer available"}
+	// ErrPlatformNotConnected means the authenticated user has not linked
+	// their credentials for the booking platform this slot belongs to. The
+	// error's Platform field names which one (e.g. "resy").
+	ErrPlatformNotConnected = &Error{Code: "platform_not_connected", Message: "booking platform is not connected"}
 )

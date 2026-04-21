@@ -121,9 +121,12 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 }
 
 // mortyErrorBody matches the API's HTTPException response shape (e.g., Hono's
-// {"error": "..."} JSON envelope).
+// {"error": "..."} JSON envelope). Platform is populated on 412 responses
+// from /reservations/book to surface which booking platform is missing user
+// credentials.
 type mortyErrorBody struct {
-	Error string `json:"error"`
+	Error    string `json:"error"`
+	Platform string `json:"platform,omitempty"`
 }
 
 // mapErrorResponse translates a non-2xx API response into a *Error backed by
@@ -142,6 +145,10 @@ func mapErrorResponse(resp *http.Response) error {
 		code = "not_found"
 	case resp.StatusCode == http.StatusConflict:
 		code = ErrConflict.Code
+	case resp.StatusCode == http.StatusGone:
+		code = ErrSlotExpired.Code
+	case resp.StatusCode == http.StatusPreconditionFailed:
+		code = ErrPlatformNotConnected.Code
 	case resp.StatusCode == http.StatusBadRequest, resp.StatusCode == http.StatusUnprocessableEntity:
 		code = ErrValidation.Code
 	case resp.StatusCode == http.StatusTooManyRequests:
@@ -156,9 +163,13 @@ func mapErrorResponse(resp *http.Response) error {
 		msg = http.StatusText(resp.StatusCode)
 	}
 
-	return &Error{
+	err := &Error{
 		Code:       code,
 		Message:    msg,
 		HTTPStatus: resp.StatusCode,
 	}
+	if code == ErrPlatformNotConnected.Code {
+		err.Platform = body.Platform
+	}
+	return err
 }

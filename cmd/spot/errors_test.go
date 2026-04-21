@@ -30,6 +30,8 @@ func TestExitCodeFor_Sentinels(t *testing.T) {
 		{"validation", spot.ErrValidation, 7},
 		{"rate limited", spot.ErrRateLimited, 8},
 		{"server", spot.ErrServer, 9},
+		{"platform not connected", spot.ErrPlatformNotConnected, 10},
+		{"slot expired", spot.ErrSlotExpired, 11},
 		{"generic not-found code", &spot.Error{Code: "not_found", HTTPStatus: 404}, 5},
 		{"unknown spot error", &spot.Error{Code: "something_weird"}, 1},
 		{"plain error", errors.New("boom"), 1},
@@ -98,4 +100,47 @@ func TestRenderError_Table_GenericErrorFallback(t *testing.T) {
 	got := buf.String()
 	assert.Contains(t, got, "error:")
 	assert.Contains(t, got, "boom")
+}
+
+func TestRenderError_Table_FriendlyPlatformNotConnected(t *testing.T) {
+	err := &spot.Error{
+		Code:       spot.ErrPlatformNotConnected.Code,
+		Message:    "platform not connected",
+		HTTPStatus: 412,
+		Platform:   "resy",
+	}
+
+	var buf bytes.Buffer
+	RenderError(&buf, render.FormatTable, err)
+
+	got := buf.String()
+	assert.Contains(t, got, "Resy account isn't connected")
+	assert.Contains(t, got, "Spot mobile app")
+}
+
+func TestRenderError_Table_FriendlySlotExpired(t *testing.T) {
+	var buf bytes.Buffer
+	RenderError(&buf, render.FormatTable, spot.ErrSlotExpired)
+
+	got := buf.String()
+	assert.Contains(t, got, "no longer available")
+	assert.Contains(t, got, "spot reservations search")
+}
+
+func TestPlatformDisplayName(t *testing.T) {
+	cases := []struct {
+		in, want string
+	}{
+		{"resy", "Resy"},
+		{"opentable", "OpenTable"},
+		{"sevenrooms", "SevenRooms"},
+		{"doordash", "DoorDash"},
+		{"unknown-platform", "unknown-platform"},
+		{"", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.in, func(t *testing.T) {
+			assert.Equal(t, tc.want, platformDisplayName(tc.in))
+		})
+	}
 }

@@ -34,6 +34,10 @@ func ExitCodeFor(err error) int {
 		return 8
 	case errors.Is(err, spot.ErrServer):
 		return 9
+	case errors.Is(err, spot.ErrPlatformNotConnected):
+		return 10
+	case errors.Is(err, spot.ErrSlotExpired):
+		return 11
 	}
 
 	// Generic *spot.Error not matching a sentinel: use its Code to pick.
@@ -93,7 +97,32 @@ func RenderError(w io.Writer, format render.Format, err error) {
 		_, _ = fmt.Fprintln(w, `You are not signed in. Run "spot auth login" to sign in.`)
 	case errors.Is(err, spot.ErrAuthExpired):
 		_, _ = fmt.Fprintln(w, `Your session expired. Run "spot auth login" to sign in again.`)
+	case errors.Is(err, spot.ErrPlatformNotConnected):
+		platform := "the booking platform"
+		if spotErr != nil && spotErr.Platform != "" {
+			platform = platformDisplayName(spotErr.Platform)
+		}
+		_, _ = fmt.Fprintf(w, "Your %s account isn't connected to Spot. Open the Spot mobile app to link it, then try again.\n", platform)
+	case errors.Is(err, spot.ErrSlotExpired):
+		_, _ = fmt.Fprintln(w, "That slot is no longer available. Run 'spot reservations search' to find another.")
 	default:
 		_, _ = fmt.Fprintln(w, "error:", body.Message)
 	}
+}
+
+// platformDisplayName maps the internal platform identifier ("resy",
+// "opentable", etc.) to the user-facing display name. Unknown values
+// pass through unchanged.
+func platformDisplayName(id string) string {
+	switch id {
+	case "resy":
+		return "Resy"
+	case "opentable":
+		return "OpenTable"
+	case "sevenrooms":
+		return "SevenRooms"
+	case "doordash":
+		return "DoorDash"
+	}
+	return id
 }
