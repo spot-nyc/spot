@@ -65,3 +65,16 @@ brews:
       system "#{bin}/spot --version"
     install: |
       bin.install "spot"
+
+scoops:
+  - name: spot
+    repository:
+      owner: spot-nyc
+      name: scoop-bucket
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: bucket
+    homepage: "https://github.com/spot-nyc/spot"
+    description: "Spot — CLI for restaurant reservation searches and bookings."
+    license: "MIT"
+    commit_msg_template: "scoop: update spot to {{ .Tag }}"
