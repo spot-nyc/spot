@@ -49,3 +49,19 @@ changelog:
       - "^docs:"
       - "^test:"
       - "^chore:"
+
+brews:
+  - name: spot
+    repository:
+      owner: spot-nyc
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://github.com/spot-nyc/spot"
+    description: "Spot — CLI for restaurant reservation searches and bookings."
+    license: "MIT"
+    test: |
+      system "#{bin}/spot --version"
+    install: |
+      bin.install "spot"
