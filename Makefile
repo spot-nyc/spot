@@ -1,4 +1,4 @@
-.PHONY: all test lint build snapshot clean
+.PHONY: all test lint build snapshot clean test-install
 
 all: test lint build
 
@@ -16,3 +16,6 @@ snapshot:
 
 clean:
 	rm -rf dist/ coverage.out
+
+test-install:
+	sh scripts/test-install.sh
