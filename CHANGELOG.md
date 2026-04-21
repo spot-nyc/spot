@@ -7,56 +7,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-04-21
+
+First tagged release of the Spot SDK.
+
 ### Added
-- Initial repo scaffolding (M0).
-- Cobra CLI root with `--version` and `--help`.
-- CI pipeline (test, lint, goreleaser snapshot).
-- Typed `*spot.Error` with 10 sentinel values (M1a).
-- HTTP `Client` with functional options, 30s default timeout, JSON encode/decode, error response mapping (M1a).
-- `auth.Store` interface + `EnvStore` backend reading `SPOT_TOKEN` (M1a).
-- `UsersService.Me` — first concrete service method (M1a).
-- `auth.FileStore` (XDG path, 0600 perms) and `auth.KeyringStore` (go-keyring) (M1b).
-- `auth.ChainedStore` + `auth.DefaultStore()` resolving env → keyring → file (M1b).
-- `auth.Login(ctx, cfg, opts)` — full PKCE authorization code flow with loopback server and browser opener (M1b).
-- `auth.NewRefreshingTokenSource` — auto-refresh via `oauth2.Config.TokenSource`, persists rotated tokens (M1b).
-- Real `SupabaseProjectRef` and `ClientID` in `auth/constants.go` pinned (M1c).
-- `scripts/validate-oauth/` — manual end-to-end harness that exercises the full OAuth stack against real infra (M1c).
 
-### Validated (M1c)
-Full OAuth flow works end-to-end against real Supabase + real morty:
-- Morty's existing HS256 JWT middleware accepts Supabase OAuth-issued access tokens unchanged — no morty changes needed.
-- `GET /users/me` shape matches `spot.User` (`id`, `phone`, `name`).
-- Supabase honors the 10 pre-registered loopback redirect URIs (`127.0.0.1:52853–52862`).
-- PKCE S256 challenge/verifier round-trips correctly.
-- Refresh token included in response (rotation behavior to validate once tokens age past 1h).
-
-### Infrastructure (M1c)
-- "Spot CLI" public OAuth 2.1 client registered on Supabase (client type: public, `token_endpoint_auth_method: none`).
-- Supabase project's `authorization_url_path` set to `/oauth/consent`.
-- Spot Pro ships consent UI at `/oauth/consent` and decision handler at `/api/oauth/decision`.
-- Spot Pro sign-in preserves `?redirect=` query param through phone + OTP flow.
-
-### Added (M2 — first user-visible commands)
-- `spot auth login` — browser-based PKCE sign-in, persists credentials to keyring/file.
-- `spot auth logout` — deletes locally-stored credentials (idempotent).
+#### Authentication
+- `spot auth login` — browser-based PKCE OAuth sign-in. Persists credentials to the OS keyring (macOS Keychain, libsecret on Linux, Windows Credential Manager) with a file fallback at `$XDG_DATA_HOME/spot/credentials.json`.
+- `spot auth logout` — clears stored credentials (idempotent).
 - `spot auth whoami` — prints the currently-authenticated user profile.
-- `spot searches list` — lists active reservation searches with human-friendly formatting (full IDs for copy-paste, `May 1, 2026` dates, `6:00 PM–9:00 PM` times, restaurant names).
-- Global `--json` / `-j` flag on every command; stdout format auto-detects based on TTY.
-- Stable, documented exit codes mapped from library error sentinels (3 unauth, 4 expired, 5 not-found, 6 conflict, 7 validation, 8 rate-limit, 9 server).
-- Friendlier table-mode messages for `ErrUnauthenticated` and `ErrAuthExpired` that tell users to run `spot auth login`.
-- `internal/tty` and `internal/render` helpers (TTY detection + JSON/table writing via text/tabwriter).
-- `SearchesService.List` + `Search` / `SearchTarget` / `Restaurant` types in the library.
-- `SPOT_BASE_URL` env var for overriding the API base URL (primarily for testing).
-- End-to-end CLI integration tests covering the full `cobra → Client → httptest → render` pipeline.
+- Automatic access-token refresh via `auth.NewRefreshingTokenSource`.
 
-### Added (M3 — Tier 1 complete)
-- `spot searches get <id>` — detail view with key-value layout (full ID, party, date, time range, upgrade, restaurants).
-- `spot searches create` — flag-driven creation (`--party`, `--date`, `--start-time`, `--end-time`, `--restaurant`). Times accept both `HH:MM` and `HH:MM:SS`. No `--upgrade` flag (server rejects on create; use `searches update` in M6).
-- `spot searches delete <id>` — idempotent deletion confirmation.
-- `spot reservations list` — upcoming reservations table with restaurant name, date, time, party, and seating type. Seating is normalized: OpenTable's `default` is surfaced as "Dining Room", and other values are title-cased to match the mobile client.
-- `spot reservations cancel <id>` — cancel a booked reservation.
-- `spot restaurants search <query>` — look up restaurants by name; full IDs shown for copy-paste into `searches create`. Columns: `ID`, `NAME`, `CUISINE`, `NEIGHBORHOOD`, `PLATFORMS`.
-- `SearchesService.Get` / `Create` / `Delete` library methods + `CreateSearchParams`.
-- `ReservationsService` + `Reservation` / `Table` types; `Table.Seating` surfaces the seated area.
-- `RestaurantsService` with `Search` method; `Restaurant` extracted to `restaurants.go` with `Neighborhood` / `Cuisine` / `Zone` / `Address` plus per-platform `ResyActive` / `OpenTableActive` / `SevenRoomsActive` / `DoorDashActive` booleans and a `Platforms()` helper.
-- 6 new end-to-end CLI integration tests, one per new command.
+#### Searches, reservations, and restaurants
+- `spot searches list|get|create|delete` — manage reservation searches. Times accept both `HH:MM` and `HH:MM:SS`. Full IDs shown in the list for copy-paste into `get`/`delete`.
+- `spot reservations list|cancel` — view and cancel booked reservations. Seating renders as "Dining Room" (OpenTable's default), "Bar", etc., mirroring the mobile client.
+- `spot restaurants search <query>` — look up restaurants by name. Columns: `ID`, `NAME`, `CUISINE`, `NEIGHBORHOOD`, `PLATFORMS` (derived from the real `resyActive` / `openTableActive` / `sevenRoomsActive` / `doorDashActive` flags).
+
+#### Output and exit codes
+- Global `--json` / `-j` flag on every command; stdout format auto-detects based on TTY.
+- Stable, documented exit codes mapped from library error sentinels: 3 unauth, 4 expired, 5 not-found, 6 conflict, 7 validation, 8 rate-limit, 9 server.
+- Friendlier table-mode messages for `ErrUnauthenticated` and `ErrAuthExpired` (suggests running `spot auth login`).
+
+#### Update check
+- Automatic non-blocking update check on every command exit. Hits `api.github.com/repos/spot-nyc/spot/releases/latest` at most once every 24 hours (cached at `$XDG_CACHE_HOME/spot/update.json`). Prints a one-liner to stderr when a newer release is available.
+- Opt out via `SPOT_NO_UPDATE_CHECK=1`. Automatically skipped in CI (`CI`, `GITHUB_ACTIONS`, `BUILDKITE`) and for `dev` builds.
+
+#### Go library (`github.com/spot-nyc/spot`)
+- Typed `*spot.Error` with 10 sentinel values (`ErrUnauthenticated`, `ErrAuthExpired`, `ErrNotFound`, `ErrConflict`, `ErrValidation`, `ErrRateLimit`, `ErrServer`, `ErrNetwork`, `ErrTimeout`, `ErrClient`).
+- HTTP client with functional options, 30s default timeout, JSON encode/decode, error response mapping.
+- Services: `UsersService`, `SearchesService`, `ReservationsService`, `RestaurantsService`.
+- `auth` package helpers: `Store` interface, `EnvStore`, `FileStore` (XDG path, 0600 perms), `KeyringStore`, `ChainedStore`, `DefaultStore()`, `Login()` (full PKCE flow with loopback server and browser opener), `NewRefreshingTokenSource`.
+
+### Infrastructure
+
+- Per-PR CI: `go test -race`, `go vet`, `golangci-lint run`, `goreleaser release --snapshot`.
+- Tag-triggered release workflow publishes cross-platform binaries (`darwin/amd64`, `darwin/arm64`, `linux/amd64`, `linux/arm64`, `windows/amd64`) to GitHub Releases with SHA256 checksums, an auto-generated formula in `spot-nyc/homebrew-tap`, and an auto-generated manifest in `spot-nyc/scoop-bucket`.
+
+### Install
+
+- `go install github.com/spot-nyc/spot/cmd/spot@latest`
+- `brew install spot-nyc/tap/spot`
+- `scoop bucket add spot-nyc https://github.com/spot-nyc/scoop-bucket && scoop install spot`
+- `curl -fsSL https://raw.githubusercontent.com/spot-nyc/spot/main/install.sh | sh`
+
+[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/spot-nyc/spot/releases/tag/v0.1.0
