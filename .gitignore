@@ -1,6 +1,7 @@
 # Binaries
 /spot
 /dist/
+/validate-oauth
 coverage.out
 
 # Go
