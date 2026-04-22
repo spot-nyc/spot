@@ -213,7 +213,7 @@ func TestReservationsService_Search(t *testing.T) {
 
 func TestReservationsService_Search_MissingRestaurant_404(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		// Morty throws HTTPException, which Hono serializes as text/plain.
+		// The Spot API returns text/plain for this 404 path.
 		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
 		w.WriteHeader(http.StatusNotFound)
 		_, _ = io.WriteString(w, "Restaurant not found: rst_missing")

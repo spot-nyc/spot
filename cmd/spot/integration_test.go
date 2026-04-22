@@ -18,7 +18,7 @@ import (
 )
 
 // integrationHarness configures the CLI for a full end-to-end test against
-// an httptest-mocked morty. It sets SPOT_TOKEN and SPOT_BASE_URL via t.Setenv
+// an httptest-mocked Spot API. It sets SPOT_TOKEN and SPOT_BASE_URL via t.Setenv
 // so the default token source + default client both resolve to the fake
 // server. The returned command is a fresh root tree with stdout and stderr
 // captured in the provided buffers.
@@ -200,7 +200,7 @@ func TestCLI_SearchesGet_JSON(t *testing.T) {
 
 func TestCLI_SearchesDelete(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Soft-delete is POST /searches/:id with a deletedAt — morty has no DELETE.
+		// Soft-delete is POST /searches/:id with a deletedAt — the Spot API has no DELETE.
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
 
@@ -242,7 +242,7 @@ func TestCLI_SearchesCreate(t *testing.T) {
 		assert.Equal(t, "18:00:00", got["startTime"], "time flag should be expanded to HH:MM:SS")
 		assert.Equal(t, "21:00:00", got["endTime"])
 		restaurantIDs, ok := got["restaurantIds"].([]any)
-		require.True(t, ok, "morty requires `restaurantIds` on create (was `restaurants` — regression guard)")
+		require.True(t, ok, "the Spot API requires `restaurantIds` on create (was `restaurants` — regression guard)")
 		assert.Len(t, restaurantIDs, 2)
 
 		w.Header().Set("Content-Type", "application/json")

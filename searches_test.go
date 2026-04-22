@@ -136,7 +136,7 @@ func TestSearchesService_Get_NotFound(t *testing.T) {
 
 func TestSearchesService_Delete(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Morty has no DELETE — soft-delete is POST /searches/:id with a deletedAt.
+		// The Spot API has no DELETE — soft-delete is POST /searches/:id with a deletedAt.
 		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
 
@@ -178,11 +178,11 @@ func TestSearchesService_Create(t *testing.T) {
 		assert.Equal(t, "18:00:00", got["startTime"])
 		assert.Equal(t, "21:00:00", got["endTime"])
 		restaurantIDs, ok := got["restaurantIds"].([]any)
-		require.True(t, ok, "morty's create schema requires `restaurantIds`; `restaurants` was a bug in v0.1.0")
+		require.True(t, ok, "the Spot API's create schema requires `restaurantIds`; `restaurants` was a bug in v0.1.0")
 		assert.Len(t, restaurantIDs, 2)
 		assert.Equal(t, "rst_abc", restaurantIDs[0])
 		assert.Equal(t, "rst_def", restaurantIDs[1])
-		// No "upgrade" field in the request body — morty rejects it on create.
+		// No "upgrade" field in the request body — the Spot API rejects it on create.
 		_, hasUpgrade := got["upgrade"]
 		assert.False(t, hasUpgrade, "CreateSearchParams must not send upgrade on create")
 
