@@ -71,7 +71,7 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 			if name == "" {
 				name = user.Phone
 			}
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Signed in as %s\n", name)
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Signed in as %s.\n", name)
 			return err
 		},
 	}
