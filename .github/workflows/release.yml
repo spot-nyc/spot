@@ -4,6 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,7 +15,64 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: ./go.mod
+
+      - name: Rotate test user refresh token
+        id: rotate
+        env:
+          OLD_REFRESH: ${{ secrets.SPOT_TEST_REFRESH_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -eo pipefail
+
+          RESPONSE=$(curl -sS -X POST \
+            "${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Content-Type: application/json" \
+            -d "{\"refresh_token\": \"${OLD_REFRESH}\"}")
+
+          NEW_ACCESS=$(echo "$RESPONSE" | jq -r '.access_token // empty')
+          NEW_REFRESH=$(echo "$RESPONSE" | jq -r '.refresh_token // empty')
+
+          if [[ -z "$NEW_ACCESS" || -z "$NEW_REFRESH" ]]; then
+            echo "refresh failed; Supabase response:" >&2
+            echo "$RESPONSE" >&2
+            exit 1
+          fi
+
+          echo "::add-mask::$NEW_ACCESS"
+          echo "::add-mask::$NEW_REFRESH"
+
+          echo "access_token=$NEW_ACCESS" >> "$GITHUB_OUTPUT"
+          echo "refresh_token=$NEW_REFRESH" >> "$GITHUB_OUTPUT"
+
+      - name: Persist rotated refresh token
+        env:
+          GH_TOKEN: ${{ secrets.SPOT_CI_PAT }}
+          NEW_REFRESH: ${{ steps.rotate.outputs.refresh_token }}
+        run: |
+          set -eo pipefail
+          gh secret set SPOT_TEST_REFRESH_TOKEN --body "$NEW_REFRESH"
+
+      - name: Run integration tests
+        env:
+          SPOT_TEST_ACCESS_TOKEN: ${{ steps.rotate.outputs.access_token }}
+          SPOT_TEST_USER_ID: ${{ secrets.SPOT_TEST_USER_ID }}
+        run: go test -tags=integration -v ./integration/...
+
   release:
+    needs: integration-tests
+    if: startsWith(github.ref, 'refs/tags/')
     name: release
     runs-on: ubuntu-latest
     steps:
