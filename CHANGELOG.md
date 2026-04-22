@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-04-22
+
+### Added
+- `spot searches update <id>` — modify an existing search. `--party`, `--date`, `--start-time`, `--end-time`, `--restaurant`. Only explicitly set flags are sent; unset fields are left untouched on the server.
+- `spot restaurants get <id>` — detail view for a single restaurant: name, cuisine, neighborhood, address, phone, website, platforms, party limits, booking difficulty, description.
+- `spot reservations search` — find reservations available to book right now. Accepts one or more restaurant IDs (`--restaurant rst_a,rst_b` or repeated). Returns slots with a short TTL and IDs to pass to `book`.
+- `spot reservations book <slotId>` — book a slot returned by `reservations search`. Returns the resulting `Reservation`.
+- `spot update` — detects how spot was installed (Homebrew / Scoop / `go install` / curl installer) and prints the matching upgrade command. Never executes; copy-paste into your shell.
+- Go library:
+  - `SearchesService.Update`, `RestaurantsService.Get`, `ReservationsService.Search`, `ReservationsService.Book`.
+  - `ReservationSlot` type and `SearchReservationsParams` / `UpdateSearchParams`.
+  - `Restaurant` gains: `Description`, `Hours`, `Phone`, `Website`, `ResyURL`, `OpenTableURL`, `SevenRoomsURL`, `DoorDashURL`, `MinimumPartySize`, `MaximumPartySize`, `BookingDifficulty`, `BookingDifficultyDetails`.
+  - New error sentinels: `ErrSlotExpired` (HTTP 410), `ErrPlatformNotConnected` (HTTP 412, carries a `Platform` field).
+- New CLI exit codes: **10** (`ErrPlatformNotConnected`), **11** (`ErrSlotExpired`). Table-mode messages guide users to the mobile app for platform linking.
+
+### Changed
+- Reservation booking is now available to any authenticated Spot user. Morty grows user-auth endpoints for synchronous search and book at `/reservations/search` and `/reservations/book`.
+
+### Removed (breaking)
+- `Search.Upgrade` and `SearchTarget.Upgrade` fields are no longer parsed or exposed by the SDK. The upgrade feature remains a morty-internal concern; it will return to the SDK surface in a later release if a use case emerges. Consumers on v0.1.0 that read these fields should drop the references — JSON consumers won't crash, but the fields won't be populated.
+
 ## [0.1.0] - 2026-04-21
 
 First tagged release of the Spot SDK.
@@ -51,5 +72,6 @@ First tagged release of the Spot SDK.
 - `scoop bucket add spot-nyc https://github.com/spot-nyc/scoop-bucket && scoop install spot`
 - `curl -fsSL https://raw.githubusercontent.com/spot-nyc/spot/main/install.sh | sh`
 
-[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/spot-nyc/spot/releases/tag/v0.2.0
 [0.1.0]: https://github.com/spot-nyc/spot/releases/tag/v0.1.0
