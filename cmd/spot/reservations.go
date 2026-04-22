@@ -28,6 +28,9 @@ func newReservationsListCmd(flags *rootFlags) *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
 		Short: "List your upcoming reservations",
+		Long: "Shows upcoming reservations only. For the complete log including\n" +
+			"past reservations and external-platform bookings, use 'spot\n" +
+			"reservations history'.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			client, err := newClient()
 			if err != nil {
