@@ -118,9 +118,6 @@ func newRestaurantsGetCmd(flags *rootFlags) *cobra.Command {
 			if restaurant.MinimumPartySize > 0 || restaurant.MaximumPartySize > 0 {
 				_, _ = fmt.Fprintf(tw, "Party Limits\t%d-%d\n", restaurant.MinimumPartySize, restaurant.MaximumPartySize)
 			}
-			if restaurant.BookingDifficulty > 0 {
-				_, _ = fmt.Fprintf(tw, "Booking Difficulty\t%d / 10\n", restaurant.BookingDifficulty)
-			}
 			return tw.Flush()
 		},
 	}
