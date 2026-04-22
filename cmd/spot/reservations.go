@@ -18,6 +18,7 @@ func newReservationsCmd(flags *rootFlags) *cobra.Command {
 	cmd.AddCommand(newReservationsListCmd(flags))
 	cmd.AddCommand(newReservationsCancelCmd(flags))
 	cmd.AddCommand(newReservationsSearchCmd(flags))
+	cmd.AddCommand(newReservationsBookCmd(flags))
 
 	return cmd
 }
@@ -184,4 +185,45 @@ func newReservationsSearchCmd(flags *rootFlags) *cobra.Command {
 	_ = cmd.MarkFlagRequired("party")
 
 	return cmd
+}
+
+func newReservationsBookCmd(flags *rootFlags) *cobra.Command {
+	return &cobra.Command{
+		Use:   "book <slotId>",
+		Short: "Book a reservation slot by slot ID",
+		Long: "Books a specific slot returned by 'spot reservations search'.\n" +
+			"Slots expire quickly — if you see a 'slot no longer available'\n" +
+			"error, re-run search and try again with the new ID.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := newClient()
+			if err != nil {
+				return err
+			}
+
+			reservation, err := client.Reservations.Book(cmd.Context(), args[0])
+			if err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat(cmd.OutOrStdout())
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), reservation)
+			}
+
+			restaurantName := "the restaurant"
+			if reservation.Table.Restaurant != nil && reservation.Table.Restaurant.Name != "" {
+				restaurantName = reservation.Table.Restaurant.Name
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(),
+				"Booked %s at %s on %s at %s for %d.\n",
+				reservation.ID,
+				restaurantName,
+				formatDate(reservation.Table.Date),
+				formatTime(reservation.Table.Time),
+				reservation.Table.Party,
+			)
+			return err
+		},
+	}
 }

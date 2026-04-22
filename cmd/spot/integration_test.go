@@ -377,6 +377,65 @@ func TestCLI_ReservationsSearch_JSON(t *testing.T) {
 	assert.Equal(t, "Gramercy Tavern", got[0].Restaurant.Name)
 }
 
+func TestCLI_ReservationsBook_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/reservations/book", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		assert.Equal(t, "slot_abc", got["slotId"])
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"reservation":{"id":"rsv_abc","table":{"id":"tbl_abc","platform":"resy","date":"2026-05-15","time":"19:00:00","party":2,"seating":"Dining Room","restaurant":{"id":"rst_a","name":"Gramercy Tavern"}}}}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"reservations", "book", "slot_abc", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got spot.Reservation
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	assert.Equal(t, "rsv_abc", got.ID)
+}
+
+func TestCLI_ReservationsBook_PlatformNotConnected_Exit10(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		_, _ = io.WriteString(w, `{"error":"platform not connected","platform":"resy"}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"reservations", "book", "slot_abc"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Equal(t, 10, ExitCodeFor(err))
+}
+
+func TestCLI_ReservationsBook_SlotExpired_Exit11(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusGone)
+		_, _ = io.WriteString(w, `{"error":"slot is no longer available"}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"reservations", "book", "slot_expired"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Equal(t, 11, ExitCodeFor(err))
+}
+
 func TestCLI_RestaurantsGet_JSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
