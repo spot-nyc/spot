@@ -121,13 +121,6 @@ func newRestaurantsGetCmd(flags *rootFlags) *cobra.Command {
 			if restaurant.BookingDifficulty > 0 {
 				_, _ = fmt.Fprintf(tw, "Booking Difficulty\t%d / 10\n", restaurant.BookingDifficulty)
 			}
-			if restaurant.Description != "" {
-				description := restaurant.Description
-				if len(description) > 200 {
-					description = description[:200] + "…"
-				}
-				_, _ = fmt.Fprintf(tw, "Description\t%s\n", description)
-			}
 			return tw.Flush()
 		},
 	}

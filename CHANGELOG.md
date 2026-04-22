@@ -11,14 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - `spot searches update <id>` — modify an existing search. `--party`, `--date`, `--start-time`, `--end-time`, `--restaurant`. Only explicitly set flags are sent; unset fields are left untouched on the server.
-- `spot restaurants get <id>` — detail view for a single restaurant: name, cuisine, neighborhood, address, phone, website, platforms, party limits, booking difficulty, description.
+- `spot restaurants get <id>` — detail view for a single restaurant: name, cuisine, neighborhood, address, phone, website, platforms, party limits, booking difficulty.
 - `spot reservations search` — find reservations available to book right now. Accepts one or more restaurant IDs (`--restaurant rst_a,rst_b` or repeated). Returns slots with a short TTL and IDs to pass to `book`.
 - `spot reservations book <slotId>` — book a slot returned by `reservations search`. Returns the resulting `Reservation`.
 - `spot update` — detects how spot was installed (Homebrew / Scoop / `go install` / curl installer) and prints the matching upgrade command. Never executes; copy-paste into your shell.
 - Go library:
   - `SearchesService.Update`, `RestaurantsService.Get`, `ReservationsService.Search`, `ReservationsService.Book`.
   - `ReservationSlot` type and `SearchReservationsParams` / `UpdateSearchParams`.
-  - `Restaurant` gains: `Description`, `Hours`, `Phone`, `Website`, `ResyURL`, `OpenTableURL`, `SevenRoomsURL`, `DoorDashURL`, `MinimumPartySize`, `MaximumPartySize`, `BookingDifficulty`, `BookingDifficultyDetails`.
+  - `Restaurant` gains: `Hours`, `Phone`, `Website`, `ResyURL`, `OpenTableURL`, `SevenRoomsURL`, `DoorDashURL`, `MinimumPartySize`, `MaximumPartySize`, `BookingDifficulty`, `BookingDifficultyDetails`.
   - New error sentinels: `ErrSlotExpired` (HTTP 410), `ErrPlatformNotConnected` (HTTP 412, carries a `Platform` field).
 - New CLI exit codes: **10** (`ErrPlatformNotConnected`), **11** (`ErrSlotExpired`). Table-mode messages guide users to the mobile app for platform linking.
 

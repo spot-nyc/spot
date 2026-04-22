@@ -21,7 +21,6 @@ type Restaurant struct {
 	Address                  string `json:"address,omitempty"`
 	Neighborhood             string `json:"neighborhood,omitempty"`
 	Zone                     string `json:"zone,omitempty"`
-	Description              string `json:"description,omitempty"`
 	Hours                    string `json:"hours,omitempty"`
 	Phone                    string `json:"phone,omitempty"`
 	Website                  string `json:"website,omitempty"`
