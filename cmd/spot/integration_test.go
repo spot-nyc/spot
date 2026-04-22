@@ -331,3 +331,27 @@ func TestCLI_RestaurantsSearch_JSON(t *testing.T) {
 	assert.True(t, got[0].ResyActive)
 	assert.Equal(t, []string{"Resy"}, got[0].Platforms())
 }
+
+func TestCLI_RestaurantsGet_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/restaurants/rst_abc", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"restaurant":{"id":"rst_abc","name":"Gramercy Tavern","neighborhood":"Flatiron","cuisine":"American","phone":"212-477-0777","website":"https://www.gramercytavern.com","minimumPartySize":1,"maximumPartySize":8,"bookingDifficulty":8,"resyActive":true,"openTableActive":false,"sevenRoomsActive":false,"doorDashActive":false}}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"restaurants", "get", "rst_abc", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got spot.Restaurant
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	assert.Equal(t, "rst_abc", got.ID)
+	assert.Equal(t, "Gramercy Tavern", got.Name)
+	assert.Equal(t, "Flatiron", got.Neighborhood)
+	assert.Equal(t, []string{"Resy"}, got.Platforms())
+}
