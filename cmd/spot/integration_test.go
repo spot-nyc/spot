@@ -12,18 +12,32 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/zalando/go-keyring"
 
 	"github.com/spot-nyc/spot"
 	"github.com/spot-nyc/spot/auth"
 )
 
 // integrationHarness configures the CLI for a full end-to-end test against
-// an httptest-mocked Spot API. It sets SPOT_TOKEN and SPOT_BASE_URL via t.Setenv
-// so the default token source + default client both resolve to the fake
-// server. The returned command is a fresh root tree with stdout and stderr
+// an httptest-mocked Spot API. It sets SPOT_TOKEN and SPOT_BASE_URL via
+// t.Setenv so the default token source + default client both resolve to
+// the fake server.
+//
+// Credential-store isolation: the harness swaps the OS keyring to an
+// in-memory mock and points XDG_CONFIG_HOME at a per-test tempdir. Tests
+// that exercise DefaultStore (via `auth logout` or similar) cannot touch
+// the developer's real credentials. Without this, a test run would wipe
+// keychain entries on every invocation.
+//
+// The returned command is a fresh root tree with stdout and stderr
 // captured in the provided buffers.
 func integrationHarness(t *testing.T, serverURL, token string, stdout, stderr *bytes.Buffer) *cobra.Command {
 	t.Helper()
+
+	// Isolate credential storage for this test.
+	keyring.MockInit()
+	t.Cleanup(func() { keyring.MockInit() })
+	t.Setenv("XDG_CONFIG_HOME", t.TempDir())
 
 	// Env must be set BEFORE newRootCmd wires up DefaultTokenSource/etc.
 	t.Setenv(auth.EnvTokenVar, token)
