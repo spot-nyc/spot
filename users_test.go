@@ -2,6 +2,7 @@ package spot
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -74,4 +75,96 @@ func TestUsersService_Me_Unauthenticated(t *testing.T) {
 	_, err = c.Users.Me(context.Background())
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrUnauthenticated)
+}
+
+func TestUsersService_Logout_DefaultScope(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/users/me/logout", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		_, hasScope := got["scope"]
+		assert.False(t, hasScope, "default (empty) scope should omit the scope field from the body")
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Users.Logout(context.Background(), "")
+	require.NoError(t, err)
+}
+
+func TestUsersService_Logout_GlobalScope(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/users/me/logout", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		assert.Equal(t, "global", got["scope"])
+
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Users.Logout(context.Background(), "global")
+	require.NoError(t, err)
+}
+
+func TestUsersService_Logout_AlreadyRevoked_ReturnsNil(t *testing.T) {
+	// Server's auth middleware says 401 — interpreted as "this token is
+	// already gone". SDK returns nil so the CLI can complete the logout
+	// flow (clear local creds) without surfacing a confusing error.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = io.WriteString(w, `Invalid or expired token`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Users.Logout(context.Background(), "")
+	require.NoError(t, err)
+}
+
+func TestUsersService_Logout_NoLocalToken_ReturnsNil(t *testing.T) {
+	// Client has no token at all — do() pre-flight returns ErrUnauthenticated
+	// before the request goes out. SDK treats this as idempotent success.
+	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+		t.Error("no HTTP call should happen when the client has no token")
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken(""), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Users.Logout(context.Background(), "")
+	require.NoError(t, err)
+}
+
+func TestUsersService_Logout_ServerError_Surfaces(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.WriteString(w, `{"error":"internal"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.Users.Logout(context.Background(), "")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrServer)
 }

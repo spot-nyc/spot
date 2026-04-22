@@ -2,6 +2,7 @@ package spot
 
 import (
 	"context"
+	"errors"
 	"net/http"
 )
 
@@ -56,4 +57,32 @@ func (s *UsersService) Me(ctx context.Context) (*User, error) {
 		return nil, err
 	}
 	return &resp.User, nil
+}
+
+// Logout revokes the user's session server-side via the Spot API, which
+// forwards to Supabase's admin.signOut. scope accepts:
+//   - ""        — omitted from body; server defaults to "local" (current session)
+//   - "local"   — current session only (explicit)
+//   - "global"  — every active session for this user
+//   - "others"  — every session except the calling one
+//
+// Idempotent: returns nil when the end state ("user is logged out") is
+// already true — both for a local client with no valid token
+// (ErrUnauthenticated from the pre-flight token check) and for a server-side
+// 401 (auth middleware rejected an already-revoked token). Any other error
+// means the revocation was not confirmed; callers should still proceed with
+// local credential cleanup but surface a warning.
+func (s *UsersService) Logout(ctx context.Context, scope string) error {
+	body := struct {
+		Scope string `json:"scope,omitempty"`
+	}{Scope: scope}
+
+	err := s.client.do(ctx, http.MethodPost, "/users/me/logout", body, nil)
+	if err == nil {
+		return nil
+	}
+	if errors.Is(err, ErrUnauthenticated) {
+		return nil
+	}
+	return err
 }
