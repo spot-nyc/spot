@@ -377,6 +377,54 @@ func TestCLI_ReservationsSearch_JSON(t *testing.T) {
 	assert.Equal(t, "Gramercy Tavern", got[0].Restaurant.Name)
 }
 
+func TestCLI_SearchesUpdate(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+
+		assert.EqualValues(t, 4, got["party"])
+		_, hasStartDate := got["startDate"]
+		assert.False(t, hasStartDate, "startDate should be omitted when --date is not set")
+		_, hasRestaurants := got["restaurantIds"]
+		assert.False(t, hasRestaurants, "restaurantIds should be omitted when --restaurant is not set")
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"search":{"id":"srch_abc","party":4}}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"searches", "update", "srch_abc", "--party", "4", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var updated spot.Search
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &updated))
+	assert.Equal(t, "srch_abc", updated.ID)
+	assert.Equal(t, 4, updated.Party)
+}
+
+func TestCLI_SearchesUpdate_NothingToUpdate(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+		t.Error("HTTP should not be reached when no flags are provided")
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"searches", "update", "srch_abc"})
+
+	err := cmd.Execute()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "nothing to update")
+}
+
 func TestCLI_ReservationsBook_JSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)

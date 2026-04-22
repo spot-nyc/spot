@@ -23,6 +23,7 @@ func newSearchesCmd(flags *rootFlags) *cobra.Command {
 	cmd.AddCommand(newSearchesGetCmd(flags))
 	cmd.AddCommand(newSearchesDeleteCmd(flags))
 	cmd.AddCommand(newSearchesCreateCmd(flags))
+	cmd.AddCommand(newSearchesUpdateCmd(flags))
 
 	return cmd
 }
@@ -263,4 +264,82 @@ func expandTime(t string) string {
 		return t + ":00"
 	}
 	return t
+}
+
+func newSearchesUpdateCmd(flags *rootFlags) *cobra.Command {
+	var (
+		party       int
+		date        string
+		startTime   string
+		endTime     string
+		restaurants []string
+	)
+
+	cmd := &cobra.Command{
+		Use:   "update <id>",
+		Short: "Modify an existing search",
+		Long: "Updates fields on an existing search. Only the flags you set are\n" +
+			"sent — unset flags leave their server-side values alone. --restaurant\n" +
+			"is a full replacement of the search's restaurant list.",
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			client, err := newClient()
+			if err != nil {
+				return err
+			}
+
+			flagSet := cmd.Flags()
+			params := &spot.UpdateSearchParams{}
+			changed := false
+			if flagSet.Changed("party") {
+				p := party
+				params.Party = &p
+				changed = true
+			}
+			if flagSet.Changed("date") {
+				d := date
+				params.StartDate = &d
+				params.EndDate = &d
+				changed = true
+			}
+			if flagSet.Changed("start-time") {
+				t := expandTime(startTime)
+				params.StartTime = &t
+				changed = true
+			}
+			if flagSet.Changed("end-time") {
+				t := expandTime(endTime)
+				params.EndTime = &t
+				changed = true
+			}
+			if flagSet.Changed("restaurant") {
+				params.RestaurantIDs = restaurants
+				changed = true
+			}
+
+			if !changed {
+				return fmt.Errorf("nothing to update; provide at least one flag")
+			}
+
+			updated, err := client.Searches.Update(cmd.Context(), args[0], params)
+			if err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat(cmd.OutOrStdout())
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), updated)
+			}
+			_, err = fmt.Fprintf(cmd.OutOrStdout(), "Search %s updated.\n", updated.ID)
+			return err
+		},
+	}
+
+	cmd.Flags().IntVar(&party, "party", 0, "party size")
+	cmd.Flags().StringVar(&date, "date", "", "search date YYYY-MM-DD (sets both start and end)")
+	cmd.Flags().StringVar(&startTime, "start-time", "", "earliest time HH:MM or HH:MM:SS")
+	cmd.Flags().StringVar(&endTime, "end-time", "", "latest time HH:MM or HH:MM:SS")
+	cmd.Flags().StringSliceVar(&restaurants, "restaurant", nil, "restaurant ID (repeatable or comma-separated; full replacement)")
+
+	return cmd
 }
