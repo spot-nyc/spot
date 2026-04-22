@@ -2,6 +2,7 @@ package spot
 
 import (
 	"context"
+	"errors"
 	"net/http"
 )
 
@@ -73,4 +74,22 @@ func (s *RestaurantsService) Search(ctx context.Context, query string) ([]Restau
 		return nil, err
 	}
 	return resp.Restaurants, nil
+}
+
+type restaurantsGetResponse struct {
+	Restaurant Restaurant `json:"restaurant"`
+}
+
+// Get fetches a single restaurant by ID. Returns ErrRestaurantNotFound if no
+// active restaurant matches.
+func (s *RestaurantsService) Get(ctx context.Context, id string) (*Restaurant, error) {
+	var resp restaurantsGetResponse
+	if err := s.client.do(ctx, http.MethodGet, "/restaurants/"+id, nil, &resp); err != nil {
+		var spotErr *Error
+		if errors.As(err, &spotErr) && spotErr.HTTPStatus == http.StatusNotFound {
+			spotErr.Code = ErrRestaurantNotFound.Code
+		}
+		return nil, err
+	}
+	return &resp.Restaurant, nil
 }

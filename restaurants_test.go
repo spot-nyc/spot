@@ -110,6 +110,53 @@ func TestRestaurant_Platforms(t *testing.T) {
 	}
 }
 
+func TestRestaurantsService_Get(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/restaurants/rst_abc", r.URL.Path)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"restaurant": {
+				"id": "rst_abc",
+				"name": "Gramercy Tavern",
+				"neighborhood": "Flatiron",
+				"cuisine": "American",
+				"resyActive": true,
+				"openTableActive": false,
+				"sevenRoomsActive": false,
+				"doorDashActive": false
+			}
+		}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	restaurant, err := c.Restaurants.Get(context.Background(), "rst_abc")
+	require.NoError(t, err)
+	require.NotNil(t, restaurant)
+	assert.Equal(t, "rst_abc", restaurant.ID)
+	assert.Equal(t, "Gramercy Tavern", restaurant.Name)
+	assert.Equal(t, []string{"Resy"}, restaurant.Platforms())
+}
+
+func TestRestaurantsService_Get_NotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, `{"error":"Restaurant not found"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	_, err = c.Restaurants.Get(context.Background(), "missing")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrRestaurantNotFound)
+}
+
 func TestRestaurantsService_Search_Empty(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
