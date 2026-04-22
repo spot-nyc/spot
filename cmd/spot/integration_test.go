@@ -332,6 +332,51 @@ func TestCLI_RestaurantsSearch_JSON(t *testing.T) {
 	assert.Equal(t, []string{"Resy"}, got[0].Platforms())
 }
 
+func TestCLI_ReservationsSearch_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/reservations/search", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		ids, ok := got["restaurantIds"].([]any)
+		require.True(t, ok)
+		assert.Len(t, ids, 2)
+		assert.Equal(t, "18:00:00", got["startTime"])
+		assert.Equal(t, "21:00:00", got["endTime"])
+		assert.Equal(t, "2026-05-15", got["date"])
+		assert.EqualValues(t, 2, got["party"])
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"availability":[{"restaurant":{"id":"rst_a","name":"Gramercy Tavern","resyActive":true},"slots":[{"id":"slot_1","platform":"resy","date":"2026-05-15","time":"19:00:00","party":2,"seating":"default","restaurantId":"rst_a"}]}]}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{
+		"reservations", "search",
+		"--restaurant", "rst_a,rst_b",
+		"--date", "2026-05-15",
+		"--start-time", "18:00",
+		"--end-time", "21:00",
+		"--party", "2",
+		"--json",
+	})
+
+	require.NoError(t, cmd.Execute())
+
+	var got []spot.ReservationSlot
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	require.Len(t, got, 1)
+	assert.Equal(t, "slot_1", got[0].ID)
+	assert.Equal(t, "resy", got[0].Platform)
+	require.NotNil(t, got[0].Restaurant)
+	assert.Equal(t, "Gramercy Tavern", got[0].Restaurant.Name)
+}
+
 func TestCLI_RestaurantsGet_JSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)

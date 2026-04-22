@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	"github.com/spot-nyc/spot"
 	"github.com/spot-nyc/spot/internal/render"
 )
 
@@ -16,6 +17,7 @@ func newReservationsCmd(flags *rootFlags) *cobra.Command {
 
 	cmd.AddCommand(newReservationsListCmd(flags))
 	cmd.AddCommand(newReservationsCancelCmd(flags))
+	cmd.AddCommand(newReservationsSearchCmd(flags))
 
 	return cmd
 }
@@ -98,4 +100,88 @@ func newReservationsCancelCmd(flags *rootFlags) *cobra.Command {
 			return err
 		},
 	}
+}
+
+func newReservationsSearchCmd(flags *rootFlags) *cobra.Command {
+	var (
+		restaurants []string
+		date        string
+		startTime   string
+		endTime     string
+		party       int
+	)
+
+	cmd := &cobra.Command{
+		Use:   "search",
+		Short: "Find reservations available to book right now",
+		Long: "Searches for available tables at the specified restaurants within\n" +
+			"the given date and time window. Each result includes a slot ID you\n" +
+			"can pass to 'spot reservations book <id>'. Slots have a short TTL —\n" +
+			"re-run search if the result is stale.",
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			client, err := newClient()
+			if err != nil {
+				return err
+			}
+
+			params := &spot.SearchReservationsParams{
+				RestaurantIDs: restaurants,
+				Date:          date,
+				StartTime:     expandTime(startTime),
+				EndTime:       expandTime(endTime),
+				Party:         party,
+			}
+
+			slots, err := client.Reservations.Search(cmd.Context(), params)
+			if err != nil {
+				return err
+			}
+
+			format := flags.resolveFormat(cmd.OutOrStdout())
+			if format == render.FormatJSON {
+				return render.JSON(cmd.OutOrStdout(), slots)
+			}
+
+			if len(slots) == 0 {
+				_, _ = fmt.Fprintln(cmd.OutOrStdout(), "No tables available in this window. Try a wider time range or other restaurants.")
+				return nil
+			}
+
+			tw := render.Table(cmd.OutOrStdout())
+			_, _ = fmt.Fprintln(tw, "ID\tRESTAURANT\tDATE\tTIME\tSEATING\tPLATFORM\tPARTY")
+			for _, slot := range slots {
+				restaurantName := "—"
+				if slot.Restaurant != nil && slot.Restaurant.Name != "" {
+					restaurantName = slot.Restaurant.Name
+				}
+				seating := formatSeating(slot.Seating)
+				if seating == "" {
+					seating = "—"
+				}
+				_, _ = fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%d\n",
+					slot.ID,
+					restaurantName,
+					formatDate(slot.Date),
+					formatTime(slot.Time),
+					seating,
+					platformDisplayName(slot.Platform),
+					slot.Party,
+				)
+			}
+			return tw.Flush()
+		},
+	}
+
+	cmd.Flags().StringSliceVar(&restaurants, "restaurant", nil, "restaurant ID (repeatable or comma-separated; at least one required)")
+	cmd.Flags().StringVar(&date, "date", "", "search date YYYY-MM-DD (required)")
+	cmd.Flags().StringVar(&startTime, "start-time", "", "earliest time HH:MM or HH:MM:SS (required)")
+	cmd.Flags().StringVar(&endTime, "end-time", "", "latest time HH:MM or HH:MM:SS (required)")
+	cmd.Flags().IntVar(&party, "party", 0, "party size (required)")
+	_ = cmd.MarkFlagRequired("restaurant")
+	_ = cmd.MarkFlagRequired("date")
+	_ = cmd.MarkFlagRequired("start-time")
+	_ = cmd.MarkFlagRequired("end-time")
+	_ = cmd.MarkFlagRequired("party")
+
+	return cmd
 }
