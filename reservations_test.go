@@ -3,6 +3,7 @@ package spot
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -229,4 +230,79 @@ func TestReservationsService_Search_Empty(t *testing.T) {
 	})
 	require.NoError(t, err)
 	assert.Empty(t, slots)
+}
+
+func TestReservationsService_Book(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/reservations/book", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		assert.Equal(t, "slot_abc", got["slotId"])
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"reservation": {
+				"id": "rsv_abc",
+				"userId": "u1",
+				"table": {
+					"id": "tbl_abc",
+					"platform": "resy",
+					"date": "2026-05-15",
+					"time": "19:00:00",
+					"party": 2,
+					"seating": "Dining Room",
+					"restaurant": {"id": "rst_a", "name": "Gramercy Tavern"}
+				}
+			}
+		}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	reservation, err := c.Reservations.Book(context.Background(), "slot_abc")
+	require.NoError(t, err)
+	require.NotNil(t, reservation)
+	assert.Equal(t, "rsv_abc", reservation.ID)
+	require.NotNil(t, reservation.Table.Restaurant)
+	assert.Equal(t, "Gramercy Tavern", reservation.Table.Restaurant.Name)
+}
+
+func TestReservationsService_Book_SlotExpired(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusGone)
+		_, _ = io.WriteString(w, `{"error":"Slot is no longer available"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	_, err = c.Reservations.Book(context.Background(), "slot_expired")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrSlotExpired)
+}
+
+func TestReservationsService_Book_PlatformNotConnected(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusPreconditionFailed)
+		_, _ = io.WriteString(w, `{"error":"Platform not connected: resy","platform":"resy"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	_, err = c.Reservations.Book(context.Background(), "slot_abc")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrPlatformNotConnected)
+
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, "resy", spotErr.Platform)
 }

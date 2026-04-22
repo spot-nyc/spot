@@ -104,3 +104,24 @@ func (s *ReservationsService) Search(ctx context.Context, params *SearchReservat
 	}
 	return slots, nil
 }
+
+type reservationsBookRequest struct {
+	SlotID string `json:"slotId"`
+}
+
+type reservationsBookResponse struct {
+	Reservation Reservation `json:"reservation"`
+}
+
+// Book books a slot previously returned by Search. Returns ErrSlotExpired if
+// the slot's TTL has passed or it was already booked, or
+// ErrPlatformNotConnected if the authenticated user hasn't linked their
+// credentials for the slot's booking platform.
+func (s *ReservationsService) Book(ctx context.Context, slotID string) (*Reservation, error) {
+	var resp reservationsBookResponse
+	body := reservationsBookRequest{SlotID: slotID}
+	if err := s.client.do(ctx, http.MethodPost, "/reservations/book", body, &resp); err != nil {
+		return nil, err
+	}
+	return &resp.Reservation, nil
+}
