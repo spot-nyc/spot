@@ -108,7 +108,8 @@ type UpdateSearchParams struct {
 
 // Update modifies an existing search. Only set fields are sent; unset fields
 // are left unchanged on the server. Returns ErrSearchNotFound if the search
-// does not exist or is not owned by the authenticated user.
+// does not exist. If the search is owned by a different user, morty returns
+// 403 and Update surfaces ErrUnauthenticated.
 func (s *SearchesService) Update(ctx context.Context, id string, params *UpdateSearchParams) (*Search, error) {
 	var resp searchDetailResponse
 	if err := s.client.do(ctx, http.MethodPost, "/searches/"+id, params, &resp); err != nil {

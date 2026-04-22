@@ -211,6 +211,33 @@ func TestReservationsService_Search(t *testing.T) {
 	assert.Equal(t, "Shuko", slots[2].Restaurant.Name)
 }
 
+func TestReservationsService_Search_MissingRestaurant_404(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		// Morty throws HTTPException, which Hono serializes as text/plain.
+		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, "Restaurant not found: rst_missing")
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	_, err = c.Reservations.Search(context.Background(), &SearchReservationsParams{
+		RestaurantIDs: []string{"rst_missing"},
+		Date:          "2026-05-15",
+		StartTime:     "18:00:00",
+		EndTime:       "21:00:00",
+		Party:         2,
+	})
+	require.Error(t, err)
+
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, http.StatusNotFound, spotErr.HTTPStatus)
+	assert.Equal(t, "Restaurant not found: rst_missing", spotErr.Message)
+}
+
 func TestReservationsService_Search_Empty(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

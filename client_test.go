@@ -248,3 +248,26 @@ func TestClient_do_UnparseableErrorBody_StillReturnsError(t *testing.T) {
 	require.True(t, errors.As(err, &spotErr))
 	assert.Equal(t, http.StatusBadGateway, spotErr.HTTPStatus)
 }
+
+// Hono's HTTPException.getResponse() returns the message as text/plain. The
+// SDK must surface that as the error Message rather than falling back to
+// http.StatusText.
+func TestClient_do_PlainTextErrorBody_PreservesMessage(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=UTF-8")
+		w.WriteHeader(http.StatusGone)
+		_, _ = io.WriteString(w, "Slot is no longer available")
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	err = c.do(context.Background(), http.MethodGet, "/", nil, nil)
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrSlotExpired)
+
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, "Slot is no longer available", spotErr.Message)
+}

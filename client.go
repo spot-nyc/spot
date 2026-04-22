@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -120,22 +121,28 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 	return mapErrorResponse(resp)
 }
 
-// mortyErrorBody matches the API's HTTPException response shape (e.g., Hono's
-// {"error": "..."} JSON envelope). Platform is populated on 412 responses
-// from /reservations/book to surface which booking platform is missing user
-// credentials.
+// mortyErrorBody matches the JSON shape Morty uses for the responses it
+// writes explicitly via c.json (e.g. 412 from /reservations/book, carrying a
+// `platform` field). Hono's HTTPException.getResponse() returns text/plain
+// instead — mapErrorResponse falls back to reading the raw body for those.
 type mortyErrorBody struct {
 	Error    string `json:"error"`
 	Platform string `json:"platform,omitempty"`
 }
 
 // mapErrorResponse translates a non-2xx API response into a *Error backed by
-// one of the sentinel codes. The body (if parseable) supplies the message; the
-// HTTP status code is always recorded in Error.HTTPStatus.
+// one of the sentinel codes. The body supplies the message (parsed as JSON
+// when possible, otherwise read as plain text); the HTTP status code is
+// always recorded in Error.HTTPStatus.
 func mapErrorResponse(resp *http.Response) error {
+	raw, _ := io.ReadAll(resp.Body)
+
 	var body mortyErrorBody
-	_ = json.NewDecoder(resp.Body).Decode(&body)
+	_ = json.Unmarshal(raw, &body)
 	msg := body.Error
+	if msg == "" {
+		msg = strings.TrimSpace(string(raw))
+	}
 
 	var code string
 	switch {
