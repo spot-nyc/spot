@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/spf13/cobra"
 
@@ -126,6 +127,11 @@ func newAuthWhoamiCmd(flags *rootFlags) *cobra.Command {
 			if user.Phone != "" {
 				_, _ = fmt.Fprintf(tw, "Phone\t%s\n", user.Phone)
 			}
+			platforms := strings.Join(user.ConnectedPlatforms(), ", ")
+			if platforms == "" {
+				platforms = "None — open the Spot mobile app to link a booking platform."
+			}
+			_, _ = fmt.Fprintf(tw, "Connected\t%s\n", platforms)
 			return tw.Flush()
 		},
 	}

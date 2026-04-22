@@ -18,7 +18,7 @@ func TestUsersService_Me(t *testing.T) {
 		assert.Equal(t, "Bearer test-token", r.Header.Get("Authorization"))
 
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = io.WriteString(w, `{"user":{"id":"user-abc","phone":"+15555551234","name":"Brian"}}`)
+		_, _ = io.WriteString(w, `{"user":{"id":"user-abc","phone":"+15555551234","name":"Brian","resyConnected":true,"openTableConnected":true,"sevenRoomsConnected":false,"doorDashConnected":false}}`)
 	}))
 	defer srv.Close()
 
@@ -30,6 +30,35 @@ func TestUsersService_Me(t *testing.T) {
 	assert.Equal(t, "user-abc", user.ID)
 	assert.Equal(t, "+15555551234", user.Phone)
 	assert.Equal(t, "Brian", user.Name)
+	assert.True(t, user.ResyConnected)
+	assert.True(t, user.OpenTableConnected)
+	assert.False(t, user.SevenRoomsConnected)
+	assert.False(t, user.DoorDashConnected)
+	assert.Equal(t, []string{"Resy", "OpenTable"}, user.ConnectedPlatforms())
+}
+
+func TestUser_ConnectedPlatforms(t *testing.T) {
+	cases := []struct {
+		name string
+		user User
+		want []string
+	}{
+		{"none", User{}, []string{}},
+		{"resy only", User{ResyConnected: true}, []string{"Resy"}},
+		{"opentable only", User{OpenTableConnected: true}, []string{"OpenTable"}},
+		{"sevenrooms only", User{SevenRoomsConnected: true}, []string{"SevenRooms"}},
+		{"doordash only", User{DoorDashConnected: true}, []string{"DoorDash"}},
+		{
+			"all",
+			User{ResyConnected: true, OpenTableConnected: true, SevenRoomsConnected: true, DoorDashConnected: true},
+			[]string{"Resy", "OpenTable", "SevenRooms", "DoorDash"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, tc.user.ConnectedPlatforms())
+		})
+	}
 }
 
 func TestUsersService_Me_Unauthenticated(t *testing.T) {

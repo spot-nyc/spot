@@ -12,12 +12,36 @@ type UsersService struct {
 
 // User is the current user profile returned by UsersService.Me.
 //
-// The field set is conservative and expected to grow as the /users/me
-// endpoint is validated against the real server in M1b.
+// The "*Connected" booleans indicate which booking platforms the user has
+// linked their credentials to. Use ConnectedPlatforms for a display-ready
+// list.
 type User struct {
-	ID    string `json:"id"`
-	Phone string `json:"phone,omitempty"`
-	Name  string `json:"name,omitempty"`
+	ID                  string `json:"id"`
+	Phone               string `json:"phone,omitempty"`
+	Name                string `json:"name,omitempty"`
+	ResyConnected       bool   `json:"resyConnected"`
+	OpenTableConnected  bool   `json:"openTableConnected"`
+	SevenRoomsConnected bool   `json:"sevenRoomsConnected"`
+	DoorDashConnected   bool   `json:"doorDashConnected"`
+}
+
+// ConnectedPlatforms returns the display names of booking platforms the user
+// has linked, in a stable order. Mirrors Restaurant.Platforms.
+func (u User) ConnectedPlatforms() []string {
+	platforms := make([]string, 0, 4)
+	if u.ResyConnected {
+		platforms = append(platforms, "Resy")
+	}
+	if u.OpenTableConnected {
+		platforms = append(platforms, "OpenTable")
+	}
+	if u.SevenRoomsConnected {
+		platforms = append(platforms, "SevenRooms")
+	}
+	if u.DoorDashConnected {
+		platforms = append(platforms, "DoorDash")
+	}
+	return platforms
 }
 
 // meResponse matches the {"user": {...}} envelope the server wraps /users/me in.
