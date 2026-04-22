@@ -31,6 +31,12 @@ func TestRestaurantsService_Search(t *testing.T) {
 					"name": "Gramercy Tavern",
 					"neighborhood": "Flatiron",
 					"cuisine": "American",
+					"description": "A New York institution since 1994.",
+					"phone": "212-477-0777",
+					"website": "https://www.gramercytavern.com",
+					"minimumPartySize": 1,
+					"maximumPartySize": 8,
+					"bookingDifficulty": 8,
 					"zone": "NYC",
 					"resyActive": true,
 					"openTableActive": false,
@@ -64,6 +70,11 @@ func TestRestaurantsService_Search(t *testing.T) {
 	assert.Equal(t, "Flatiron", results[0].Neighborhood)
 	assert.Equal(t, "American", results[0].Cuisine)
 	assert.Equal(t, "NYC", results[0].Zone)
+	assert.Equal(t, "A New York institution since 1994.", results[0].Description)
+	assert.Equal(t, "212-477-0777", results[0].Phone)
+	assert.Equal(t, "https://www.gramercytavern.com", results[0].Website)
+	assert.Equal(t, 8, results[0].MaximumPartySize)
+	assert.Equal(t, 8, results[0].BookingDifficulty)
 	assert.True(t, results[0].ResyActive)
 	assert.False(t, results[0].OpenTableActive)
 	assert.Equal(t, []string{"Resy"}, results[0].Platforms())
