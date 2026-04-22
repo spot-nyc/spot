@@ -230,6 +230,9 @@ func TestCLI_SearchesCreate(t *testing.T) {
 		assert.EqualValues(t, 2, got["party"])
 		assert.Equal(t, "18:00:00", got["startTime"], "time flag should be expanded to HH:MM:SS")
 		assert.Equal(t, "21:00:00", got["endTime"])
+		restaurantIDs, ok := got["restaurantIds"].([]any)
+		require.True(t, ok, "morty requires `restaurantIds` on create (was `restaurants` — regression guard)")
+		assert.Len(t, restaurantIDs, 2)
 
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"search":{"id":"srch_new","party":2}}`)

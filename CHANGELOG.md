@@ -25,6 +25,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Reservation booking is now available to any authenticated Spot user. Morty grows user-auth endpoints for synchronous search and book at `/reservations/search` and `/reservations/book`.
 
+### Fixed
+- `spot searches create` / `SearchesService.Create` were shipping the restaurant list under the JSON key `restaurants`, which morty rejects — the endpoint expects `restaurantIds`. In v0.1.0 the command returned a 400 from the server; the SDK mock-tests matched the SDK's bad output rather than the real API. The Go field is now `CreateSearchParams.RestaurantIDs` (JSON tag `restaurantIds`), matching `UpdateSearchParams.RestaurantIDs`.
+- Error messages from Hono's `HTTPException` (e.g. "Slot is no longer available", "Restaurant not found") are now surfaced intact instead of being replaced by `http.StatusText(code)` ("Gone", "Not Found"). The SDK previously only parsed JSON error bodies; Hono emits `text/plain` by default.
+
 ### Removed (breaking)
 - `Search.Upgrade` and `SearchTarget.Upgrade` fields are no longer parsed or exposed by the SDK. The upgrade feature remains a morty-internal concern; it will return to the SDK surface in a later release if a use case emerges. Consumers on v0.1.0 that read these fields should drop the references — JSON consumers won't crash, but the fields won't be populated.
 

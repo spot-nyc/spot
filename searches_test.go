@@ -164,11 +164,11 @@ func TestSearchesService_Create(t *testing.T) {
 		assert.Equal(t, "2026-05-01", got["endDate"])
 		assert.Equal(t, "18:00:00", got["startTime"])
 		assert.Equal(t, "21:00:00", got["endTime"])
-		restaurants, ok := got["restaurants"].([]any)
-		require.True(t, ok)
-		assert.Len(t, restaurants, 2)
-		assert.Equal(t, "rst_abc", restaurants[0])
-		assert.Equal(t, "rst_def", restaurants[1])
+		restaurantIDs, ok := got["restaurantIds"].([]any)
+		require.True(t, ok, "morty's create schema requires `restaurantIds`; `restaurants` was a bug in v0.1.0")
+		assert.Len(t, restaurantIDs, 2)
+		assert.Equal(t, "rst_abc", restaurantIDs[0])
+		assert.Equal(t, "rst_def", restaurantIDs[1])
 		// No "upgrade" field in the request body — morty rejects it on create.
 		_, hasUpgrade := got["upgrade"]
 		assert.False(t, hasUpgrade, "CreateSearchParams must not send upgrade on create")
@@ -182,12 +182,12 @@ func TestSearchesService_Create(t *testing.T) {
 	require.NoError(t, err)
 
 	params := &CreateSearchParams{
-		Party:       2,
-		StartDate:   "2026-05-01",
-		EndDate:     "2026-05-01",
-		StartTime:   "18:00:00",
-		EndTime:     "21:00:00",
-		Restaurants: []string{"rst_abc", "rst_def"},
+		Party:         2,
+		StartDate:     "2026-05-01",
+		EndDate:       "2026-05-01",
+		StartTime:     "18:00:00",
+		EndTime:       "21:00:00",
+		RestaurantIDs: []string{"rst_abc", "rst_def"},
 	}
 
 	created, err := c.Searches.Create(context.Background(), params)

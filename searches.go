@@ -67,19 +67,16 @@ func (s *SearchesService) Delete(ctx context.Context, id string) error {
 
 // CreateSearchParams holds the inputs for SearchesService.Create.
 //
-// Party, StartDate, EndDate, StartTime, EndTime, and Restaurants are all required.
+// Party, StartDate, EndDate, StartTime, EndTime, and RestaurantIDs are all required.
 // Time fields use "HH:MM:SS" format (the server accepts HH:MM:SS).
 // Dates use "YYYY-MM-DD" format.
-//
-// Note: there is no Upgrade field — morty rejects upgrade on create. Enable
-// upgrade mode via SearchesService.Update (Tier 2, M6).
 type CreateSearchParams struct {
-	Party       int      `json:"party"`
-	StartDate   string   `json:"startDate"`
-	EndDate     string   `json:"endDate"`
-	StartTime   string   `json:"startTime"`
-	EndTime     string   `json:"endTime"`
-	Restaurants []string `json:"restaurants"`
+	Party         int      `json:"party"`
+	StartDate     string   `json:"startDate"`
+	EndDate       string   `json:"endDate"`
+	StartTime     string   `json:"startTime"`
+	EndTime       string   `json:"endTime"`
+	RestaurantIDs []string `json:"restaurantIds"`
 }
 
 // Create creates a new reservation search.

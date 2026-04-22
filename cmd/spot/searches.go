@@ -220,12 +220,12 @@ func newSearchesCreateCmd(flags *rootFlags) *cobra.Command {
 			}
 
 			params := &spot.CreateSearchParams{
-				Party:       party,
-				StartDate:   date,
-				EndDate:     date,
-				StartTime:   expandTime(startTime),
-				EndTime:     expandTime(endTime),
-				Restaurants: restaurants,
+				Party:         party,
+				StartDate:     date,
+				EndDate:       date,
+				StartTime:     expandTime(startTime),
+				EndTime:       expandTime(endTime),
+				RestaurantIDs: restaurants,
 			}
 
 			created, err := client.Searches.Create(cmd.Context(), params)
