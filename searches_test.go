@@ -119,7 +119,7 @@ func TestSearchesService_Get(t *testing.T) {
 func TestSearchesService_Get_NotFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
-		_, _ = io.WriteString(w, `{"error":"Search not found"}`)
+		_, _ = io.WriteString(w, `Search not found`)
 	}))
 	defer srv.Close()
 
@@ -128,9 +128,10 @@ func TestSearchesService_Get_NotFound(t *testing.T) {
 
 	_, err = c.Searches.Get(context.Background(), "missing")
 	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrSearchNotFound)
+
 	var spotErr *Error
 	require.True(t, errors.As(err, &spotErr))
-	assert.Equal(t, "not_found", spotErr.Code)
 	assert.Equal(t, http.StatusNotFound, spotErr.HTTPStatus)
 }
 

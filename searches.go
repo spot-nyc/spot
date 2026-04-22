@@ -52,10 +52,15 @@ func (s *SearchesService) List(ctx context.Context) ([]Search, error) {
 	return resp.Searches, nil
 }
 
-// Get fetches a single search by ID.
+// Get fetches a single search by ID. Returns ErrSearchNotFound if no search
+// with that ID exists or the search is soft-deleted.
 func (s *SearchesService) Get(ctx context.Context, id string) (*Search, error) {
 	var resp searchDetailResponse
 	if err := s.client.do(ctx, http.MethodGet, "/searches/"+id, nil, &resp); err != nil {
+		var spotErr *Error
+		if errors.As(err, &spotErr) && spotErr.HTTPStatus == http.StatusNotFound {
+			spotErr.Code = ErrSearchNotFound.Code
+		}
 		return nil, err
 	}
 	return &resp.Search, nil
