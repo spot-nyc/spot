@@ -200,9 +200,20 @@ func TestCLI_SearchesGet_JSON(t *testing.T) {
 
 func TestCLI_SearchesDelete(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodDelete, r.Method)
+		// Soft-delete is POST /searches/:id with a deletedAt — morty has no DELETE.
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
-		w.WriteHeader(http.StatusNoContent)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		deletedAt, ok := got["deletedAt"].(string)
+		require.True(t, ok, "delete must POST a deletedAt timestamp")
+		assert.NotEmpty(t, deletedAt)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"search":{"id":"srch_abc"}}`)
 	}))
 	defer srv.Close()
 

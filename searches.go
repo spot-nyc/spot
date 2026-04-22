@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"time"
 )
 
 // SearchesService handles the /searches endpoints.
@@ -60,9 +61,14 @@ func (s *SearchesService) Get(ctx context.Context, id string) (*Search, error) {
 	return &resp.Search, nil
 }
 
-// Delete removes a search by ID. Succeeds on 2xx responses (including 204).
+// Delete marks a search as deleted. Morty has no DELETE endpoint — soft
+// deletion is performed by POSTing the update endpoint with a non-null
+// deletedAt. Succeeds on any 2xx response.
 func (s *SearchesService) Delete(ctx context.Context, id string) error {
-	return s.client.do(ctx, http.MethodDelete, "/searches/"+id, nil, nil)
+	body := struct {
+		DeletedAt string `json:"deletedAt"`
+	}{DeletedAt: time.Now().UTC().Format(time.RFC3339)}
+	return s.client.do(ctx, http.MethodPost, "/searches/"+id, body, nil)
 }
 
 // CreateSearchParams holds the inputs for SearchesService.Create.

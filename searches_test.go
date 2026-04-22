@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -135,9 +136,21 @@ func TestSearchesService_Get_NotFound(t *testing.T) {
 
 func TestSearchesService_Delete(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, http.MethodDelete, r.Method)
+		// Morty has no DELETE — soft-delete is POST /searches/:id with a deletedAt.
+		assert.Equal(t, http.MethodPost, r.Method)
 		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
-		w.WriteHeader(http.StatusNoContent)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		deletedAt, ok := got["deletedAt"].(string)
+		require.True(t, ok, "Delete must POST a deletedAt timestamp")
+		_, perr := time.Parse(time.RFC3339, deletedAt)
+		assert.NoError(t, perr, "deletedAt should be RFC3339: %q", deletedAt)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"search":{"id":"srch_abc"}}`)
 	}))
 	defer srv.Close()
 
