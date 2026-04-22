@@ -32,7 +32,7 @@ token stashed as a GitHub secret; the workflow rotates it on every run.
 | `SPOT_TEST_REFRESH_TOKEN` | Supabase refresh token for the dedicated test user. Self-rotated by the workflow. | One-time human setup; workflow thereafter. |
 | `SPOT_TEST_USER_ID` | UUID of the test user, for whoami assertions. | Human, permanent. |
 | `SUPABASE_URL` | Supabase project URL (e.g. `https://xyz.supabase.co`). | Human, permanent. |
-| `SPOT_CI_PAT` | GitHub PAT with `actions:write` on this repo, used by the workflow to overwrite `SPOT_TEST_REFRESH_TOKEN`. | Human, rotate periodically. |
+| `SPOT_CI_PAT` | GitHub fine-grained PAT scoped to this repo with **Secrets: Read and write** permission. Used by the workflow to overwrite `SPOT_TEST_REFRESH_TOKEN` after each rotation. | Human, rotate periodically. |
 
 ### Workflow behavior
 
@@ -57,8 +57,8 @@ On every integration-test run:
 3. `gh secret set SPOT_TEST_REFRESH_TOKEN --body "<refresh token>"` in the
    SDK repo.
 4. Set the other permanent secrets listed above.
-5. Create a fine-grained PAT with `Actions:write` permission on this repo
-   only, save it as `SPOT_CI_PAT`.
+5. Create a fine-grained PAT scoped to this repo only with **Secrets: Read
+   and write** permission. Save it as `SPOT_CI_PAT`.
 
 If the workflow ever loses the rotation (e.g. a failed `gh secret set`
 between the refresh and the test run), integration tests will start failing
