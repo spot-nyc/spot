@@ -210,3 +210,72 @@ func TestSearchesService_Create_ValidationError(t *testing.T) {
 	require.Error(t, err)
 	assert.ErrorIs(t, err, ErrValidation)
 }
+
+func TestSearchesService_Update(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/searches/srch_abc", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+
+		assert.EqualValues(t, 4, got["party"])
+		_, hasStartDate := got["startDate"]
+		assert.False(t, hasStartDate, "startDate not set, should not appear in body")
+		_, hasEndDate := got["endDate"]
+		assert.False(t, hasEndDate)
+		restaurants, ok := got["restaurantIds"].([]any)
+		require.True(t, ok)
+		assert.Len(t, restaurants, 2)
+		assert.Equal(t, "rst_a", restaurants[0])
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"search": {
+				"id": "srch_abc",
+				"userId": "u1",
+				"party": 4,
+				"startDate": "2026-05-01",
+				"endDate": "2026-05-03",
+				"startTime": "18:00:00",
+				"endTime": "21:00:00"
+			}
+		}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	party := 4
+	updated, err := c.Searches.Update(context.Background(), "srch_abc", &UpdateSearchParams{
+		Party:         &party,
+		RestaurantIDs: []string{"rst_a", "rst_b"},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, updated)
+	assert.Equal(t, "srch_abc", updated.ID)
+	assert.Equal(t, 4, updated.Party)
+}
+
+func TestSearchesService_Update_NotFound(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		_, _ = io.WriteString(w, `{"error":"Search not found"}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	party := 4
+	_, err = c.Searches.Update(context.Background(), "srch_missing", &UpdateSearchParams{Party: &party})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrSearchNotFound)
+
+	var spotErr *Error
+	require.True(t, errors.As(err, &spotErr))
+	assert.Equal(t, http.StatusNotFound, spotErr.HTTPStatus)
+}

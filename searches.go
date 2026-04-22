@@ -2,6 +2,7 @@ package spot
 
 import (
 	"context"
+	"errors"
 	"net/http"
 )
 
@@ -85,6 +86,36 @@ type CreateSearchParams struct {
 func (s *SearchesService) Create(ctx context.Context, params *CreateSearchParams) (*Search, error) {
 	var resp searchDetailResponse
 	if err := s.client.do(ctx, http.MethodPost, "/searches", params, &resp); err != nil {
+		return nil, err
+	}
+	return &resp.Search, nil
+}
+
+// UpdateSearchParams holds optional updates to an existing search. Scalar
+// fields use pointers so the caller can distinguish "unset, don't send"
+// (nil) from "set to zero value" (pointer to zero). RestaurantIDs uses a
+// plain slice — nil is treated as "unset" and omitted from the request;
+// an explicit empty slice is also omitted because morty rejects zero-target
+// updates.
+type UpdateSearchParams struct {
+	Party         *int     `json:"party,omitempty"`
+	StartDate     *string  `json:"startDate,omitempty"`
+	EndDate       *string  `json:"endDate,omitempty"`
+	StartTime     *string  `json:"startTime,omitempty"`
+	EndTime       *string  `json:"endTime,omitempty"`
+	RestaurantIDs []string `json:"restaurantIds,omitempty"`
+}
+
+// Update modifies an existing search. Only set fields are sent; unset fields
+// are left unchanged on the server. Returns ErrSearchNotFound if the search
+// does not exist or is not owned by the authenticated user.
+func (s *SearchesService) Update(ctx context.Context, id string, params *UpdateSearchParams) (*Search, error) {
+	var resp searchDetailResponse
+	if err := s.client.do(ctx, http.MethodPost, "/searches/"+id, params, &resp); err != nil {
+		var spotErr *Error
+		if errors.As(err, &spotErr) && spotErr.HTTPStatus == http.StatusNotFound {
+			spotErr.Code = ErrSearchNotFound.Code
+		}
 		return nil, err
 	}
 	return &resp.Search, nil
