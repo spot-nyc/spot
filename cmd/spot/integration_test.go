@@ -522,6 +522,36 @@ func TestCLI_RestaurantsGet_JSON(t *testing.T) {
 	assert.Equal(t, []string{"Resy"}, got.Platforms())
 }
 
+func TestCLI_ReservationsHistory_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/reservations", r.URL.Path)
+		assert.Equal(t, "true", r.URL.Query().Get("external"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"reservations": [
+				{"id":"rsv_1","table":{"platform":"resy","date":"2026-04-20","time":"19:00:00","party":2,"seating":"default","restaurant":{"id":"r1","name":"Gramercy Tavern"}}},
+				{"id":"rsv_2","table":{"platform":"opentable","date":"2026-03-15","time":"20:30:00","party":4,"seating":"Bar","restaurant":{"id":"r2","name":"Shuko"}}}
+			]
+		}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"reservations", "history", "--json"})
+
+	require.NoError(t, cmd.Execute())
+
+	var got []spot.Reservation
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	require.Len(t, got, 2)
+	assert.Equal(t, "rsv_1", got[0].ID)
+	assert.Equal(t, "Gramercy Tavern", got[0].Table.Restaurant.Name)
+	assert.Equal(t, "opentable", got[1].Table.Platform)
+}
+
 func TestCLI_AuthLogout_CallsServerRevocation(t *testing.T) {
 	revocationCalled := false
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
