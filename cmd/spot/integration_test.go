@@ -521,3 +521,70 @@ func TestCLI_RestaurantsGet_JSON(t *testing.T) {
 	assert.Equal(t, "Flatiron", got.Neighborhood)
 	assert.Equal(t, []string{"Resy"}, got.Platforms())
 }
+
+func TestCLI_AuthLogout_CallsServerRevocation(t *testing.T) {
+	revocationCalled := false
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/users/me/logout" {
+			revocationCalled = true
+			assert.Equal(t, http.MethodPost, r.Method)
+			body, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			var got map[string]any
+			require.NoError(t, json.Unmarshal(body, &got))
+			_, hasScope := got["scope"]
+			assert.False(t, hasScope, "default logout omits scope")
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"auth", "logout"})
+
+	require.NoError(t, cmd.Execute())
+	assert.True(t, revocationCalled, "logout must call the revocation endpoint")
+}
+
+func TestCLI_AuthLogout_AllFlag_SendsGlobalScope(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/users/me/logout" {
+			body, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			var got map[string]any
+			require.NoError(t, json.Unmarshal(body, &got))
+			assert.Equal(t, "global", got["scope"])
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"auth", "logout", "--all"})
+
+	require.NoError(t, cmd.Execute())
+}
+
+func TestCLI_AuthLogout_ServerError_ClearsLocalAnyway(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = io.WriteString(w, `{"error":"boom"}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{"auth", "logout"})
+
+	// Local cleanup runs even though server-side revocation failed.
+	// (stdout is JSON because the harness buffer is non-TTY.)
+	require.NoError(t, cmd.Execute())
+	assert.Contains(t, stderr.String(), "warning: server-side revocation did not complete")
+	assert.Contains(t, stdout.String(), `"signedOut": true`)
+}

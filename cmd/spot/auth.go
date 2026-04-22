@@ -78,13 +78,34 @@ func newAuthLoginCmd(flags *rootFlags) *cobra.Command {
 }
 
 func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
-	return &cobra.Command{
+	var all bool
+
+	cmd := &cobra.Command{
 		Use:   "logout",
-		Short: "Sign this session out of Spot",
-		Long: "Removes locally stored credentials. Your other devices (mobile,\n" +
-			"web) stay signed in. To revoke access everywhere, visit your Spot\n" +
-			"account settings.",
+		Short: "Clear local credentials and revoke the refresh token server-side",
+		Long: "Revokes the refresh token on the Spot API and clears credentials\n" +
+			"from the OS keyring / credential file. Use --all to revoke every\n" +
+			"active session across all devices (useful if a token may have\n" +
+			"leaked). Server-side revocation is best-effort — local credentials\n" +
+			"are always cleared even if the server call fails.",
 		RunE: func(cmd *cobra.Command, _ []string) error {
+			scope := ""
+			if all {
+				scope = "global"
+			}
+
+			// Best-effort server-side revocation. Failures are logged to
+			// stderr but do not block local cleanup — a user who asks to
+			// "log out" always gets their local session cleared.
+			if client, clientErr := newClient(); clientErr == nil {
+				if err := client.Users.Logout(cmd.Context(), scope); err != nil {
+					_, _ = fmt.Fprintf(cmd.ErrOrStderr(),
+						"warning: server-side revocation did not complete (%s). Your local credentials were cleared, but the refresh token may still be valid on the server. Run 'spot auth logout --all' from an authenticated session to revoke it.\n",
+						err.Error())
+				}
+			}
+
+			// Clear local credentials regardless of revocation outcome.
 			if err := auth.DefaultStore().Delete(); err != nil {
 				return err
 			}
@@ -93,10 +114,13 @@ func newAuthLogoutCmd(flags *rootFlags) *cobra.Command {
 			if format == render.FormatJSON {
 				return render.JSON(cmd.OutOrStdout(), map[string]any{"signedOut": true})
 			}
-			_, err := fmt.Fprintf(cmd.OutOrStdout(), "Signed out.\n")
+			_, err := fmt.Fprintln(cmd.OutOrStdout(), "Signed out.")
 			return err
 		},
 	}
+
+	cmd.Flags().BoolVar(&all, "all", false, "revoke the refresh token on all devices (global logout)")
+	return cmd
 }
 
 func newAuthWhoamiCmd(flags *rootFlags) *cobra.Command {
