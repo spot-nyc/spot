@@ -22,9 +22,9 @@ var ClientID = "60e5a5cb-00a0-42bd-b7b2-6ff112656285"
 //
 // We request "phone profile" (not "openid ..."), because the Supabase project
 // currently uses HS256 signing. The openid scope would fail to produce an ID
-// token under HS256 — access tokens work regardless. Morty's existing JWT
-// middleware validates the access token on the way in; we use morty's
-// /users/me endpoint to surface user info.
+// token under HS256 — access tokens work regardless. The Spot API's JWT
+// middleware validates the access token on the way in; we use its /users/me
+// endpoint to surface user info.
 const DefaultScopes = "phone profile"
 
 // LoopbackPorts is the list of pre-registered loopback ports the CLI tries in

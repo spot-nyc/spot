@@ -18,7 +18,7 @@ type clientOptions struct {
 	tokenSource oauth2.TokenSource
 }
 
-// WithBaseURL overrides the morty base URL. Default: https://api.spot.nyc.
+// WithBaseURL overrides the Spot API base URL. Default: https://api.spot.nyc.
 func WithBaseURL(url string) Option {
 	return func(o *clientOptions) {
 		o.baseURL = url

@@ -8,7 +8,7 @@ import (
 )
 
 // SpotBaseURLEnv names an optional environment variable for overriding the
-// morty API base URL. Unset in normal use; the CLI falls back to
+// Spot API base URL. Unset in normal use; the CLI falls back to
 // spot.DefaultBaseURL. Primarily intended for end-to-end CLI tests pointing
 // at an httptest server.
 const SpotBaseURLEnv = "SPOT_BASE_URL"

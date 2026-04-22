@@ -86,7 +86,7 @@ func formatDate(d string) string {
 	return d
 }
 
-// formatSeating normalizes the raw seating string morty returns for display.
+// formatSeating normalizes the raw seating string the Spot API returns for display.
 // OpenTable stores its default dining-area slots as "default"; we surface
 // that as "Dining Room" to match the mobile client. Other values are
 // title-cased (e.g. "bar" → "Bar"). Empty input returns empty so callers

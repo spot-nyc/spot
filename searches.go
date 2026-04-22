@@ -61,8 +61,8 @@ func (s *SearchesService) Get(ctx context.Context, id string) (*Search, error) {
 	return &resp.Search, nil
 }
 
-// Delete marks a search as deleted. Morty has no DELETE endpoint — soft
-// deletion is performed by POSTing the update endpoint with a non-null
+// Delete marks a search as deleted. The Spot API has no DELETE endpoint —
+// soft deletion is performed by POSTing the update endpoint with a non-null
 // deletedAt. Succeeds on any 2xx response.
 func (s *SearchesService) Delete(ctx context.Context, id string) error {
 	body := struct {
@@ -98,8 +98,8 @@ func (s *SearchesService) Create(ctx context.Context, params *CreateSearchParams
 // fields use pointers so the caller can distinguish "unset, don't send"
 // (nil) from "set to zero value" (pointer to zero). RestaurantIDs uses a
 // plain slice — nil is treated as "unset" and omitted from the request;
-// an explicit empty slice is also omitted because morty rejects zero-target
-// updates.
+// an explicit empty slice is also omitted because the Spot API rejects
+// zero-target updates.
 type UpdateSearchParams struct {
 	Party         *int     `json:"party,omitempty"`
 	StartDate     *string  `json:"startDate,omitempty"`
@@ -111,8 +111,8 @@ type UpdateSearchParams struct {
 
 // Update modifies an existing search. Only set fields are sent; unset fields
 // are left unchanged on the server. Returns ErrSearchNotFound if the search
-// does not exist. If the search is owned by a different user, morty returns
-// 403 and Update surfaces ErrUnauthenticated.
+// does not exist. If the search is owned by a different user, the Spot API
+// returns 403 and Update surfaces ErrUnauthenticated.
 func (s *SearchesService) Update(ctx context.Context, id string, params *UpdateSearchParams) (*Search, error) {
 	var resp searchDetailResponse
 	if err := s.client.do(ctx, http.MethodPost, "/searches/"+id, params, &resp); err != nil {

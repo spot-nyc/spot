@@ -14,7 +14,7 @@ The program:
 1. Runs `auth.DefaultLogin` — opens your browser to Supabase's authorize URL.
 2. You complete phone OTP sign-in + consent on Spot Pro.
 3. Program receives the callback, exchanges code for tokens.
-4. Program calls `GET /users/me` on morty with the issued access token.
+4. Program calls `GET /users/me` on the Spot API with the issued access token.
 5. Prints the user profile on success.
 
 ## Prerequisites
@@ -25,7 +25,7 @@ The program:
 
 ## Environment variables
 
-- `SPOT_BASE_URL` — override the morty API base URL. Default: `https://api.spot.nyc`.
+- `SPOT_BASE_URL` — override the Spot API base URL. Default: `https://api.spot.nyc`.
 
 ## Expected output
 
@@ -54,4 +54,4 @@ Calling GET /users/me …
 - **"open browser" error** — your environment has no default browser. Run on a machine with a GUI.
 - **"all pre-registered loopback ports are in use"** — another process is holding one of ports 52853–52862. Close it and retry.
 - **"state mismatch"** — the browser somehow sent a different state than the CLI generated. Rerun.
-- **"users.me: unauthenticated"** — morty rejected the OAuth-issued access token. See M1c plan Task 9 for morty middleware diagnosis steps.
+- **"users.me: unauthenticated"** — the Spot API rejected the OAuth-issued access token. See M1c plan Task 9 for API middleware diagnosis steps.

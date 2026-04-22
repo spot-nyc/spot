@@ -121,11 +121,11 @@ func (c *Client) do(ctx context.Context, method, path string, body, out any) err
 	return mapErrorResponse(resp)
 }
 
-// mortyErrorBody matches the JSON shape Morty uses for the responses it
-// writes explicitly via c.json (e.g. 412 from /reservations/book, carrying a
-// `platform` field). Hono's HTTPException.getResponse() returns text/plain
-// instead — mapErrorResponse falls back to reading the raw body for those.
-type mortyErrorBody struct {
+// apiErrorBody matches the JSON shape the Spot API uses for responses it
+// writes explicitly (e.g. 412 from /reservations/book, carrying a `platform`
+// field). Some error paths return plain text instead of JSON —
+// mapErrorResponse falls back to reading the raw body for those.
+type apiErrorBody struct {
 	Error    string `json:"error"`
 	Platform string `json:"platform,omitempty"`
 }
@@ -137,7 +137,7 @@ type mortyErrorBody struct {
 func mapErrorResponse(resp *http.Response) error {
 	raw, _ := io.ReadAll(resp.Body)
 
-	var body mortyErrorBody
+	var body apiErrorBody
 	_ = json.Unmarshal(raw, &body)
 	msg := body.Error
 	if msg == "" {

@@ -2,8 +2,8 @@
 //
 // It opens a browser, guides the user through the Supabase consent flow on
 // Spot Pro, receives the callback on a local loopback port, exchanges the
-// code for tokens, and finally calls morty's /users/me endpoint to confirm
-// the access token is accepted by morty's JWT middleware.
+// code for tokens, and finally calls the Spot API's /users/me endpoint to
+// confirm the access token is accepted by the API's JWT middleware.
 //
 // Manual run — requires a real browser and a human to complete OTP sign-in.
 //
@@ -12,7 +12,7 @@
 //
 // Environment overrides (optional):
 //
-//	SPOT_BASE_URL — override morty API base URL (default: https://api.spot.nyc)
+//	SPOT_BASE_URL — override Spot API base URL (default: https://api.spot.nyc)
 package main
 
 import (
