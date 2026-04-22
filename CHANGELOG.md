@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-04-22
+
+### Added
+- `spot auth logout` now revokes the refresh token server-side before clearing local credentials. Adds `--all` flag to perform a global revocation (every active session for the user). Server failures print a warning on stderr but still complete local cleanup.
+- `spot reservations history` — full reservation log including past, upcoming, and external-platform reservations synced from booking platforms linked via the mobile app. `spot reservations list` remains the upcoming-only view; both commands cross-reference each other in help text.
+- Go library:
+  - `UsersService.Logout(ctx, scope)` — calls `POST /users/me/logout`. Accepts `""` (server default, current session), `"local"`, `"global"` (all sessions), or `"others"` (every session except this one) — vocabulary matches Supabase's `admin.signOut`. Idempotent: already-revoked tokens and missing local credentials both return nil.
+  - `ReservationsService.History(ctx)` — wraps `GET /reservations?external=true`.
+
+### Changed
+- `spot auth logout` output gained a warning line when server-side revocation fails, so users know to retry from an authenticated session.
+
 ## [0.2.0] - 2026-04-22
 
 ### Added
@@ -77,6 +89,7 @@ First tagged release of the Spot SDK.
 - `scoop bucket add spot-nyc https://github.com/spot-nyc/scoop-bucket && scoop install spot`
 - `curl -fsSL https://raw.githubusercontent.com/spot-nyc/spot/main/install.sh | sh`
 
-[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/spot-nyc/spot/releases/tag/v0.3.0
 [0.2.0]: https://github.com/spot-nyc/spot/releases/tag/v0.2.0
 [0.1.0]: https://github.com/spot-nyc/spot/releases/tag/v0.1.0
