@@ -31,15 +31,18 @@ jobs:
         env:
           OLD_REFRESH: ${{ secrets.SPOT_TEST_REFRESH_TOKEN }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Public OAuth client ID for the Spot CLI (matches auth/constants.go).
+          # Not a secret — required by OAuth 2.1 PKCE refresh for public clients.
+          SPOT_CLIENT_ID: "60e5a5cb-00a0-42bd-b7b2-6ff112656285"
         run: |
           set -eo pipefail
 
           RESPONSE=$(curl -sS -X POST \
-            "${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token" \
-            -H "apikey: ${SUPABASE_ANON_KEY}" \
-            -H "Content-Type: application/json" \
-            -d "{\"refresh_token\": \"${OLD_REFRESH}\"}")
+            "${SUPABASE_URL}/auth/v1/oauth/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=refresh_token" \
+            --data-urlencode "refresh_token=${OLD_REFRESH}" \
+            --data-urlencode "client_id=${SPOT_CLIENT_ID}")
 
           NEW_ACCESS=$(echo "$RESPONSE" | jq -r '.access_token // empty')
           NEW_REFRESH=$(echo "$RESPONSE" | jq -r '.refresh_token // empty')

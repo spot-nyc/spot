@@ -32,15 +32,17 @@ token stashed as a GitHub secret; the workflow rotates it on every run.
 | `SPOT_TEST_REFRESH_TOKEN` | Supabase refresh token for the dedicated test user. Self-rotated by the workflow. | One-time human setup; workflow thereafter. |
 | `SPOT_TEST_USER_ID` | UUID of the test user, for whoami assertions. | Human, permanent. |
 | `SUPABASE_URL` | Supabase project URL (e.g. `https://xyz.supabase.co`). | Human, permanent. |
-| `SUPABASE_ANON_KEY` | Supabase anon/publishable key, sent as `apikey` header on the refresh call. | Human, permanent. |
 | `SPOT_CI_PAT` | GitHub PAT with `actions:write` on this repo, used by the workflow to overwrite `SPOT_TEST_REFRESH_TOKEN`. | Human, rotate periodically. |
 
 ### Workflow behavior
 
 On every integration-test run:
 
-1. Curl `${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token` with the
-   stashed refresh token → new `access_token` + `refresh_token`.
+1. Curl `${SUPABASE_URL}/auth/v1/oauth/token` with the stashed refresh
+   token as form-encoded `grant_type=refresh_token&refresh_token=...
+   &client_id=<Spot CLI public OAuth client ID>`. The Spot CLI is a public
+   OAuth 2.1 client so no secret is needed — just the client_id, which is
+   hardcoded in the workflow to match `auth/constants.go`.
 2. `gh secret set SPOT_TEST_REFRESH_TOKEN` with the new refresh token. This
    persists *before* the tests run so a test failure doesn't lose the new
    token (old one is already invalidated by Supabase).
