@@ -3,6 +3,7 @@ package auth
 import (
 	"encoding/json"
 	"errors"
+	"strings"
 
 	"github.com/zalando/go-keyring"
 )
@@ -34,11 +35,14 @@ func NewKeyringStore(account string) *KeyringStore {
 }
 
 // Load reads credentials from the OS keychain. Returns ErrNoCredentials when
-// no entry exists.
+// no entry exists or the keyring backend is unavailable (e.g., Linux without
+// a running Secret Service / D-Bus). The "unavailable" case is equivalent to
+// "no credentials could have been saved here," so the chain can fall through
+// to the file store.
 func (k *KeyringStore) Load() (Credentials, error) {
 	data, err := keyring.Get(KeyringServiceName, k.account)
 	if err != nil {
-		if errors.Is(err, keyring.ErrNotFound) {
+		if errors.Is(err, keyring.ErrNotFound) || isKeyringUnavailable(err) {
 			return Credentials{}, ErrNoCredentials
 		}
 		return Credentials{}, err
@@ -63,13 +67,32 @@ func (k *KeyringStore) Save(creds Credentials) error {
 	return keyring.Set(KeyringServiceName, k.account, string(data))
 }
 
-// Delete removes credentials from the OS keychain. Missing entry is not an error.
+// Delete removes credentials from the OS keychain. Missing entry is not an
+// error, nor is the keyring backend being unavailable — if the keyring can't
+// be reached, there was nothing it could hold to begin with, so logout is
+// still complete from this store's perspective.
 func (k *KeyringStore) Delete() error {
 	if err := keyring.Delete(KeyringServiceName, k.account); err != nil {
-		if errors.Is(err, keyring.ErrNotFound) {
+		if errors.Is(err, keyring.ErrNotFound) || isKeyringUnavailable(err) {
 			return nil
 		}
 		return err
 	}
 	return nil
+}
+
+// isKeyringUnavailable reports whether err indicates the underlying keyring
+// backend could not be reached at all. On Linux, go-keyring uses the Secret
+// Service via D-Bus; headless environments (CI, minimal containers) often
+// lack it and produce an error like "The name org.freedesktop.secrets was
+// not provided by any .service files." Treat these as "no storage" so the
+// CLI can still function via the file-backed fallback store.
+func isKeyringUnavailable(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "org.freedesktop.secrets") ||
+		strings.Contains(msg, "not provided by any .service files") ||
+		strings.Contains(msg, "SecretService")
 }

@@ -74,3 +74,35 @@ func TestKeyringStore_DefaultAccount(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "a", loaded.AccessToken)
 }
+
+func TestIsKeyringUnavailable(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil", nil, false},
+		{
+			"linux no d-bus",
+			errors.New("The name org.freedesktop.secrets was not provided by any .service files"),
+			true,
+		},
+		{
+			"generic d-bus name missing",
+			errors.New("something org.freedesktop.secrets something"),
+			true,
+		},
+		{
+			"secret service missing",
+			errors.New("SecretService not available"),
+			true,
+		},
+		{"unrelated error", errors.New("permission denied"), false},
+		{"not-found (should be handled separately)", keyring.ErrNotFound, false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, isKeyringUnavailable(tc.err))
+		})
+	}
+}
