@@ -2,6 +2,7 @@ package spot
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -100,4 +101,132 @@ func TestReservationsService_Cancel_NotFound(t *testing.T) {
 
 	err = c.Reservations.Cancel(context.Background(), "rsv_missing")
 	require.Error(t, err)
+}
+
+func TestReservationsService_Search(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/reservations/search", r.URL.Path)
+
+		body, err := io.ReadAll(r.Body)
+		require.NoError(t, err)
+		var got map[string]any
+		require.NoError(t, json.Unmarshal(body, &got))
+		restaurantIDs, ok := got["restaurantIds"].([]any)
+		require.True(t, ok)
+		assert.Len(t, restaurantIDs, 2)
+		assert.Equal(t, "rst_a", restaurantIDs[0])
+		assert.Equal(t, "2026-05-15", got["date"])
+		assert.Equal(t, "18:00:00", got["startTime"])
+		assert.EqualValues(t, 2, got["party"])
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"availability": [
+				{
+					"restaurant": {
+						"id": "rst_a",
+						"name": "Gramercy Tavern",
+						"neighborhood": "Flatiron",
+						"cuisine": "American",
+						"resyActive": true,
+						"openTableActive": false,
+						"sevenRoomsActive": false,
+						"doorDashActive": false
+					},
+					"slots": [
+						{
+							"id": "slot_1",
+							"platform": "resy",
+							"date": "2026-05-15",
+							"time": "19:00:00",
+							"party": 2,
+							"seating": "Dining Room",
+							"restaurantId": "rst_a"
+						},
+						{
+							"id": "slot_2",
+							"platform": "resy",
+							"date": "2026-05-15",
+							"time": "20:00:00",
+							"party": 2,
+							"seating": "Dining Room",
+							"restaurantId": "rst_a"
+						}
+					]
+				},
+				{
+					"restaurant": {
+						"id": "rst_b",
+						"name": "Shuko",
+						"neighborhood": "Union Square",
+						"cuisine": "Japanese",
+						"resyActive": false,
+						"openTableActive": true,
+						"sevenRoomsActive": false,
+						"doorDashActive": false
+					},
+					"slots": [
+						{
+							"id": "slot_3",
+							"platform": "opentable",
+							"date": "2026-05-15",
+							"time": "19:30:00",
+							"party": 2,
+							"seating": "default",
+							"restaurantId": "rst_b"
+						}
+					]
+				}
+			]
+		}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	slots, err := c.Reservations.Search(context.Background(), &SearchReservationsParams{
+		RestaurantIDs: []string{"rst_a", "rst_b"},
+		Date:          "2026-05-15",
+		StartTime:     "18:00:00",
+		EndTime:       "21:00:00",
+		Party:         2,
+	})
+	require.NoError(t, err)
+	require.Len(t, slots, 3)
+
+	assert.Equal(t, "slot_1", slots[0].ID)
+	assert.Equal(t, "resy", slots[0].Platform)
+	assert.Equal(t, "2026-05-15", slots[0].Date)
+	assert.Equal(t, "19:00:00", slots[0].Time)
+	assert.Equal(t, "Dining Room", slots[0].Seating)
+	assert.Equal(t, "rst_a", slots[0].RestaurantID)
+	require.NotNil(t, slots[0].Restaurant)
+	assert.Equal(t, "Gramercy Tavern", slots[0].Restaurant.Name)
+
+	assert.Equal(t, "slot_3", slots[2].ID)
+	require.NotNil(t, slots[2].Restaurant)
+	assert.Equal(t, "Shuko", slots[2].Restaurant.Name)
+}
+
+func TestReservationsService_Search_Empty(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"availability":[]}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	slots, err := c.Reservations.Search(context.Background(), &SearchReservationsParams{
+		RestaurantIDs: []string{"rst_a"},
+		Date:          "2026-05-15",
+		StartTime:     "18:00:00",
+		EndTime:       "21:00:00",
+		Party:         2,
+	})
+	require.NoError(t, err)
+	assert.Empty(t, slots)
 }

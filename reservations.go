@@ -50,3 +50,57 @@ func (s *ReservationsService) List(ctx context.Context) ([]Reservation, error) {
 func (s *ReservationsService) Cancel(ctx context.Context, id string) error {
 	return s.client.do(ctx, http.MethodPost, "/reservations/"+id+"/cancel", nil, nil)
 }
+
+// ReservationSlot is a table that's currently available to book. Slots are
+// persisted server-side for a short TTL (around 5 minutes); after that, Book
+// returns ErrSlotExpired.
+type ReservationSlot struct {
+	ID           string      `json:"id"`
+	Platform     string      `json:"platform"`
+	Date         string      `json:"date"`
+	Time         string      `json:"time"`
+	Party        int         `json:"party"`
+	Seating      string      `json:"seating,omitempty"`
+	RestaurantID string      `json:"restaurantId"`
+	Restaurant   *Restaurant `json:"restaurant,omitempty"`
+}
+
+// SearchReservationsParams are inputs for ReservationsService.Search.
+type SearchReservationsParams struct {
+	RestaurantIDs []string `json:"restaurantIds"`
+	Date          string   `json:"date"`
+	StartTime     string   `json:"startTime"`
+	EndTime       string   `json:"endTime"`
+	Party         int      `json:"party"`
+}
+
+type reservationsSearchAvailability struct {
+	Restaurant Restaurant        `json:"restaurant"`
+	Slots      []ReservationSlot `json:"slots"`
+}
+
+type reservationsSearchResponse struct {
+	Availability []reservationsSearchAvailability `json:"availability"`
+}
+
+// Search returns slots currently available at the requested restaurants
+// within the date/time window. Each slot is persisted server-side with a
+// short TTL; callers book by passing the slot ID to Book. The returned
+// slots are flattened across restaurants, with each slot's Restaurant
+// field populated.
+func (s *ReservationsService) Search(ctx context.Context, params *SearchReservationsParams) ([]ReservationSlot, error) {
+	var resp reservationsSearchResponse
+	if err := s.client.do(ctx, http.MethodPost, "/reservations/search", params, &resp); err != nil {
+		return nil, err
+	}
+
+	var slots []ReservationSlot
+	for _, group := range resp.Availability {
+		restaurant := group.Restaurant
+		for _, slot := range group.Slots {
+			slot.Restaurant = &restaurant
+			slots = append(slots, slot)
+		}
+	}
+	return slots, nil
+}
