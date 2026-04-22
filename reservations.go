@@ -46,6 +46,17 @@ func (s *ReservationsService) List(ctx context.Context) ([]Reservation, error) {
 	return resp.Reservations, nil
 }
 
+// History returns the authenticated user's full reservation log — past and
+// upcoming, Spot-booked and external platforms the user has linked via the
+// mobile app. Sorted date-desc by the server. For upcoming-only, use List.
+func (s *ReservationsService) History(ctx context.Context) ([]Reservation, error) {
+	var resp reservationsListResponse
+	if err := s.client.do(ctx, http.MethodGet, "/reservations?external=true", nil, &resp); err != nil {
+		return nil, err
+	}
+	return resp.Reservations, nil
+}
+
 // Cancel cancels an upcoming reservation by ID. Succeeds on 2xx responses.
 func (s *ReservationsService) Cancel(ctx context.Context, id string) error {
 	return s.client.do(ctx, http.MethodPost, "/reservations/"+id+"/cancel", nil, nil)

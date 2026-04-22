@@ -90,6 +90,74 @@ func TestReservationsService_Cancel(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestReservationsService_History(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/reservations", r.URL.Path)
+		assert.Equal(t, "true", r.URL.Query().Get("external"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"reservations": [
+				{
+					"id": "rsv_recent",
+					"userId": "u1",
+					"table": {
+						"id": "tbl_1",
+						"platform": "resy",
+						"date": "2026-04-20",
+						"time": "19:00:00",
+						"party": 2,
+						"seating": "Dining Room",
+						"restaurant": {"id": "rst_a", "name": "Gramercy Tavern"}
+					}
+				},
+				{
+					"id": "rsv_older",
+					"userId": "u1",
+					"table": {
+						"id": "tbl_2",
+						"platform": "opentable",
+						"date": "2026-03-15",
+						"time": "20:30:00",
+						"party": 4,
+						"seating": "Bar",
+						"restaurant": {"id": "rst_b", "name": "Shuko"}
+					}
+				}
+			]
+		}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	reservations, err := c.Reservations.History(context.Background())
+	require.NoError(t, err)
+	require.Len(t, reservations, 2)
+	assert.Equal(t, "rsv_recent", reservations[0].ID)
+	assert.Equal(t, "Gramercy Tavern", reservations[0].Table.Restaurant.Name)
+	assert.Equal(t, "resy", reservations[0].Table.Platform)
+	assert.Equal(t, "rsv_older", reservations[1].ID)
+	assert.Equal(t, "Shuko", reservations[1].Table.Restaurant.Name)
+}
+
+func TestReservationsService_History_Empty(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{"reservations":[]}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	reservations, err := c.Reservations.History(context.Background())
+	require.NoError(t, err)
+	assert.Empty(t, reservations)
+}
+
 func TestReservationsService_Cancel_NotFound(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
