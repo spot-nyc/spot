@@ -27,6 +27,8 @@ Include the platform — some platforms charge cancellation fees, and users may 
 
 Before cancelling, run `spot reservations search` for the new intent. If slots exist, note the candidate but don't book yet. If no slots, pivot to offering an autobook search for the new intent.
 
+If the replacement intent is vague ("find me something for Sunday"), fall back to the plan-dinner flow and use reservation history as a preference prior (see SKILL.md § *Using history as soft preference signal*). Deprioritize the restaurant they just cancelled — if they're pivoting away from it, they probably want something different rather than a shifted time at the same spot, unless they say otherwise.
+
 ### 5. Cancel, then book
 
 Only after confirming the replacement is feasible:

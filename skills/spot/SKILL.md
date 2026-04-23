@@ -41,6 +41,44 @@ Use the snapshot to inform every suggestion:
 - If `auth whoami` fails, tell the user to run `spot auth login` and wait.
 - Check `connectedPlatforms` on the whoami result — if the platform needed for a booking isn't connected, warn early instead of letting `book` fail.
 
+### When the intent is discovery, also load history
+
+If the user is picking a restaurant (planning a dinner, monitoring for a drop, looking for a replacement), also run:
+
+```
+spot reservations history --json
+```
+
+Skip this for state-only queries ("what do I have?") and for specific-restaurant bookings where the user already named the place. The next section explains how to mine it.
+
+## Using history as soft preference signal
+
+Reservation history is the cheapest personalization signal available — the user's past bookings tell you what they're into before they say a word. Mine it to cold-start recommendations.
+
+**What to extract from the history response:**
+
+- **Cuisine affinity** — frequency of each `table.restaurant.cuisine` across past bookings.
+- **Neighborhood patterns** — frequency of `table.restaurant.neighborhood`. Weight recent bookings more heavily than older ones.
+- **Typical party size** — mode of `table.party`. Useful as a default when the user says "dinner" without specifying.
+- **Time tendency** — are they early (pre-7pm) or late (post-9pm)? Derived from `table.time`.
+- **Seating preference** — bar vs dining room, from `table.seating`.
+- **Booking style** — average `table.restaurant.bookingDifficulty`. High → they chase tough reservations; low → casual choices. Calibrates how ambitious your recs should be.
+- **Recently visited** — restaurant IDs in the last ~30 days. These should rank lower in new recommendations (variety bias).
+
+**How to use it:**
+
+- **Treat as a prior, not a constraint.** If history is Italian-heavy, that's a starting guess, not a filter. Never silently exclude non-Italian restaurants from recommendations.
+- **Explicitly invite deviation.** When patterns are clear, lead with them and offer an escape hatch: *"You usually go for Italian downtown — want that, or break pattern tonight?"*
+- **Seed defaults from patterns.** Party always 2? Default the party flag to 2 when the user doesn't specify. Always 7:30? Default the time window to 6:30–9:00.
+- **Avoid recent re-recommendations.** When ranking candidates from `restaurants search`, deprioritize anything the user visited in the last ~30 days. Mention by name if you're intentionally skipping a frequent favorite so the user can override.
+- **Stated preferences beat inferred ones, every time.** "Japanese tonight" beats an Italian-heavy history. Drop the prior and go.
+
+**Cold-start behavior:**
+
+- **Thin history (<3 entries):** don't infer. Ask the user directly as you would for a new user.
+- **Rich history (20+ entries):** on the first discovery turn, consider opening with a short pattern recap: *"Looks like you're a Flatiron regular who leans Italian. Want to stay in that lane, or stretch?"* Sets tone, gives the user an easy way to redirect.
+- Somewhere in between: use the signal but don't call it out.
+
 ## Decision tree
 
 ### Intent: "book <specific restaurant> on <date> at <time> for <N>"

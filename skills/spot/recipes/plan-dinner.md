@@ -8,10 +8,12 @@
 
 Ask (or infer from context) the minimum set:
 - Date — confirm absolute date.
-- Time window — propose 6:00–9:00 PM if unspecified.
-- Party size.
-- Neighborhood and/or cuisine preference.
+- Time window — propose 6:00–9:00 PM if unspecified, **or seed from history** (user's typical time slot, if there's a clear pattern).
+- Party size — **default from history** if the user's bookings are consistently the same size and they didn't specify.
+- Neighborhood and/or cuisine preference — if the user didn't specify and history shows a clear pattern, *suggest* it and ask if they want to stay in lane or stretch. Don't silently filter.
 - Any hard filters: vegetarian, kid-friendly, on a particular platform, etc.
+
+See SKILL.md § *Using history as soft preference signal* for the full rules on when to infer vs ask.
 
 ### 2. Discover candidates
 
@@ -35,6 +37,8 @@ From the candidate set, pick the top 3–5 based on:
 - Name / reputation match to user's preference.
 - Platform fit (user has that platform connected).
 - Party-size fit (check `minimumPartySize` / `maximumPartySize` from `restaurants get`).
+- **History signal** — prefer cuisines / neighborhoods the user has shown affinity for, but deprioritize restaurants they visited in the last ~30 days (variety bias). If you're intentionally skipping a frequent favorite, mention it by name so the user can override.
+- **Booking-style calibration** — if history shows they mostly book tough reservations (high `bookingDifficulty`), bias toward ambitious picks; if casual, the opposite.
 
 Optionally call `spot restaurants get <id>` on each top candidate to see cuisine, hours, address if that helps differentiate.
 
