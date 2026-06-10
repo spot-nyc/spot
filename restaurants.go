@@ -89,15 +89,19 @@ func (r Restaurant) Platforms() []string {
 	return platforms
 }
 
+// RestaurantSearchScope limits discovery to all or canonical restaurants.
 type RestaurantSearchScope string
 
+// Restaurant search scopes supported by restaurant discovery.
 const (
 	RestaurantSearchScopeAll       RestaurantSearchScope = "all"
 	RestaurantSearchScopeCanonical RestaurantSearchScope = "canonical"
 )
 
+// RestaurantSearchSort controls the ranking order for discovery results.
 type RestaurantSearchSort string
 
+// Restaurant search sort orders supported by restaurant discovery.
 const (
 	RestaurantSearchSortRelevance RestaurantSearchSort = "relevance"
 	RestaurantSearchSortDistance  RestaurantSearchSort = "distance"
@@ -122,13 +126,16 @@ type RestaurantSearchParams struct {
 	RadiusMeters int
 }
 
+// RestaurantCoordinates are longitude/latitude coordinates for a restaurant.
 type RestaurantCoordinates struct {
 	X float64 `json:"x"`
 	Y float64 `json:"y"`
 }
 
+// MealService is a meal period when a restaurant may accept reservations.
 type MealService string
 
+// Meal services returned in restaurant availability.
 const (
 	MealServiceBreakfast MealService = "breakfast"
 	MealServiceBrunch    MealService = "brunch"
@@ -136,11 +143,13 @@ const (
 	MealServiceDinner    MealService = "dinner"
 )
 
+// RestaurantAvailability describes the meal services a restaurant supports.
 type RestaurantAvailability struct {
 	All   []MealService               `json:"all"`
 	Daily RestaurantDailyAvailability `json:"daily"`
 }
 
+// RestaurantDailyAvailability describes meal services by day of week.
 type RestaurantDailyAvailability struct {
 	Monday    []MealService `json:"monday"`
 	Tuesday   []MealService `json:"tuesday"`
@@ -151,6 +160,7 @@ type RestaurantDailyAvailability struct {
 	Sunday    []MealService `json:"sunday"`
 }
 
+// RestaurantRating is an editorial or guide rating for a restaurant.
 type RestaurantRating struct {
 	Source      string  `json:"source"`
 	ArticleURL  string  `json:"articleUrl"`
@@ -160,6 +170,7 @@ type RestaurantRating struct {
 	Max         float64 `json:"max"`
 }
 
+// RestaurantMention is an editorial mention of a restaurant.
 type RestaurantMention struct {
 	Source         string  `json:"source"`
 	ArticleURL     string  `json:"articleUrl"`
@@ -169,12 +180,14 @@ type RestaurantMention struct {
 	ArticleDate    *string `json:"articleDate,omitempty"`
 }
 
+// RestaurantSearchResult is one ranked restaurant discovery result.
 type RestaurantSearchResult struct {
 	Restaurant     Restaurant `json:"restaurant"`
 	Score          float64    `json:"score"`
 	DistanceMeters *float64   `json:"distanceMeters,omitempty"`
 }
 
+// UnmarshalJSON decodes discovery results, including the legacy distance key.
 func (r *RestaurantSearchResult) UnmarshalJSON(data []byte) error {
 	type restaurantSearchResult RestaurantSearchResult
 	var aux struct {
@@ -198,6 +211,7 @@ type RestaurantSearchResponse struct {
 	NextCursor *string                  `json:"nextCursor"`
 }
 
+// UnmarshalJSON decodes discovery responses, including the legacy cursor key.
 func (r *RestaurantSearchResponse) UnmarshalJSON(data []byte) error {
 	var aux struct {
 		Results          []RestaurantSearchResult `json:"results"`
