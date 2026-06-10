@@ -79,6 +79,144 @@ func TestRestaurantsService_Search(t *testing.T) {
 	assert.Equal(t, []string{"OpenTable"}, results[1].Platforms())
 }
 
+func TestRestaurantsService_Discover(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/restaurants/search", r.URL.Path)
+
+		query := r.URL.Query()
+		assert.Equal(t, "pasta", query.Get("q"))
+		assert.Equal(t, "italian", query.Get("cuisine"))
+		assert.Equal(t, "flatiron", query.Get("neighborhood"))
+		assert.Equal(t, "new-york", query.Get("market"))
+		assert.Equal(t, "canonical", query.Get("scope"))
+		assert.Equal(t, "distance", query.Get("sort"))
+		assert.Equal(t, "5", query.Get("limit"))
+		assert.Equal(t, "40.7128", query.Get("lat"))
+		assert.Equal(t, "-74.006", query.Get("lon"))
+		assert.Equal(t, "1200", query.Get("radiusMeters"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"results": [
+				{
+					"restaurant": {
+						"id": "rst_lodi",
+						"name": "Lodi",
+						"cuisine": "Italian",
+						"neighborhood": "Rockefeller Center",
+						"address": "1 Rockefeller Plaza",
+						"coordinates": {"x": -73.978, "y": 40.758},
+						"availability": null,
+						"active": true,
+						"imageUrl": null,
+						"imageUrls": ["https://example.com/lodi.jpg"],
+						"thumbnailUrl": null,
+						"headerUrl": null,
+						"priceTier": "$$$",
+						"description": "All-day Italian restaurant",
+						"editorial": null,
+						"policy": null,
+						"email": null,
+						"phone": "212-555-0100",
+						"website": "https://example.com/lodi",
+						"instagram": null,
+						"googleId": "google_lodi",
+						"googleMapsUrl": "https://maps.example.com/lodi",
+						"ratings": [
+							{
+								"source": "infatuation-nyc",
+								"articleUrl": "https://example.com/lodi-review",
+								"articleDate": "2026-05-20",
+								"label": null,
+								"score": 8.2,
+								"max": 10
+							}
+						],
+						"mentions": [
+							{
+								"source": "infatuation-nyc",
+								"articleUrl": "https://example.com/pasta",
+								"articleType": "guide",
+								"articleTitle": "Best Pasta",
+								"articleSummary": "Pasta picks",
+								"articleDate": "2026-05-01"
+							}
+						],
+						"resyId": "resy_lodi",
+						"resyUrl": "https://resy.example.com/lodi",
+						"resyActive": true,
+						"openTableId": null,
+						"openTableUrl": null,
+						"openTableActive": false,
+						"sevenRoomsId": null,
+						"sevenRoomsSlug": null,
+						"sevenRoomsUrl": null,
+						"sevenRoomsActive": false,
+						"doorDashId": null,
+						"doorDashUrl": null,
+						"doorDashActive": false,
+						"minimumPartySize": 1,
+						"maximumPartySize": 6,
+						"bookingDifficulty": 7,
+						"bookingDifficultyDetails": "Popular dinner reservations",
+						"depositFeeAmount": null,
+						"depositFeeCutoffTime": null,
+						"depositFeeCutoffWindow": null,
+						"cancellationFeeAmount": null,
+						"cancellationFeeCutoffTime": null,
+						"cancellationFeeCutoffWindow": null
+					},
+					"score": 0.98,
+					"distanceMeters": 321.5
+				}
+			],
+			"nextCursor": null
+		}`)
+	}))
+	defer srv.Close()
+
+	c, err := NewClient(WithToken("test-token"), WithBaseURL(srv.URL))
+	require.NoError(t, err)
+
+	lat := 40.7128
+	lon := -74.006
+	response, err := c.Restaurants.Discover(context.Background(), &RestaurantSearchParams{
+		Q:            "pasta",
+		Cuisine:      "italian",
+		Neighborhood: "flatiron",
+		Market:       "new-york",
+		Scope:        RestaurantSearchScopeCanonical,
+		Sort:         RestaurantSearchSortDistance,
+		Limit:        5,
+		Lat:          &lat,
+		Lon:          &lon,
+		RadiusMeters: 1200,
+	})
+	require.NoError(t, err)
+	require.Len(t, response.Results, 1)
+	assert.Nil(t, response.NextCursor)
+
+	result := response.Results[0]
+	assert.Equal(t, "rst_lodi", result.Restaurant.ID)
+	assert.Equal(t, "Lodi", result.Restaurant.Name)
+	assert.Equal(t, "Italian", result.Restaurant.Cuisine)
+	assert.Equal(t, "Rockefeller Center", result.Restaurant.Neighborhood)
+	assert.Equal(t, "$$$", result.Restaurant.PriceTier)
+	assert.Equal(t, "https://example.com/lodi", result.Restaurant.Website)
+	assert.Equal(t, []string{"https://example.com/lodi.jpg"}, result.Restaurant.ImageURLs)
+	require.NotNil(t, result.Restaurant.Coordinates)
+	assert.Equal(t, -73.978, result.Restaurant.Coordinates.X)
+	assert.Equal(t, 40.758, result.Restaurant.Coordinates.Y)
+	require.Len(t, result.Restaurant.Ratings, 1)
+	assert.Equal(t, "infatuation-nyc", result.Restaurant.Ratings[0].Source)
+	require.Len(t, result.Restaurant.Mentions, 1)
+	assert.Equal(t, "Best Pasta", result.Restaurant.Mentions[0].ArticleTitle)
+	assert.Equal(t, []string{"Resy"}, result.Restaurant.Platforms())
+	require.NotNil(t, result.DistanceMeters)
+	assert.Equal(t, 321.5, *result.DistanceMeters)
+}
+
 func TestRestaurant_Platforms(t *testing.T) {
 	cases := []struct {
 		name       string

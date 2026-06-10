@@ -360,6 +360,170 @@ func TestCLI_RestaurantsSearch_JSON(t *testing.T) {
 	assert.Equal(t, []string{"Resy"}, got[0].Platforms())
 }
 
+func TestCLI_RestaurantsDiscover_JSON(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/restaurants/search", r.URL.Path)
+
+		query := r.URL.Query()
+		assert.Equal(t, "pasta", query.Get("q"))
+		assert.Equal(t, "italian", query.Get("cuisine"))
+		assert.Equal(t, "flatiron", query.Get("neighborhood"))
+		assert.Equal(t, "new-york", query.Get("market"))
+		assert.Equal(t, "canonical", query.Get("scope"))
+		assert.Equal(t, "distance", query.Get("sort"))
+		assert.Equal(t, "5", query.Get("limit"))
+		assert.Equal(t, "40.7128", query.Get("lat"))
+		assert.Equal(t, "-74.006", query.Get("lon"))
+		assert.Equal(t, "1200", query.Get("radiusMeters"))
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = io.WriteString(w, `{
+			"results": [
+				{
+					"restaurant": {
+						"id": "rst_lodi",
+						"name": "Lodi",
+						"cuisine": "Italian",
+						"neighborhood": "Rockefeller Center",
+						"address": "1 Rockefeller Plaza",
+						"coordinates": {"x": -73.978, "y": 40.758},
+						"availability": null,
+						"active": true,
+						"priceTier": "$$$",
+						"ratings": [
+							{
+								"source": "infatuation-nyc",
+								"articleUrl": "https://example.com/lodi-review",
+								"articleDate": "2026-05-20",
+								"label": null,
+								"score": 8.2,
+								"max": 10
+							}
+						],
+						"mentions": [],
+						"resyActive": true,
+						"openTableActive": false,
+						"sevenRoomsActive": false,
+						"doorDashActive": false,
+						"bookingDifficulty": 7
+					},
+					"score": 0.98,
+					"distanceMeters": 321.5
+				}
+			],
+			"nextCursor": null
+		}`)
+	}))
+	defer srv.Close()
+
+	var stdout, stderr bytes.Buffer
+	cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+	cmd.SetArgs([]string{
+		"restaurants", "discover", "pasta",
+		"--cuisine", "italian",
+		"--neighborhood", "flatiron",
+		"--market", "new-york",
+		"--scope", "canonical",
+		"--sort", "distance",
+		"--limit", "5",
+		"--lat", "40.7128",
+		"--lon", "-74.006",
+		"--radius-meters", "1200",
+		"--json",
+	})
+
+	require.NoError(t, cmd.Execute())
+
+	var got spot.RestaurantSearchResponse
+	require.NoError(t, json.Unmarshal(stdout.Bytes(), &got))
+	require.Len(t, got.Results, 1)
+	assert.Equal(t, "rst_lodi", got.Results[0].Restaurant.ID)
+	assert.Equal(t, "Lodi", got.Results[0].Restaurant.Name)
+	assert.Nil(t, got.NextCursor)
+}
+
+func TestCLI_RestaurantsDiscover_ValidatesFlags(t *testing.T) {
+	cases := []struct {
+		name string
+		args []string
+		want string
+	}{
+		{
+			name: "query and q conflict",
+			args: []string{"pasta", "--q", "pizza"},
+			want: "provide search text either as [query] or --q, not both",
+		},
+		{
+			name: "unsupported scope",
+			args: []string{"--scope", "noncanonical"},
+			want: "invalid --scope",
+		},
+		{
+			name: "unsupported sort",
+			args: []string{"--sort", "rating"},
+			want: "invalid --sort",
+		},
+		{
+			name: "distance sort requires geo",
+			args: []string{"--sort", "distance"},
+			want: "--sort distance requires both --lat and --lon",
+		},
+		{
+			name: "limit too small",
+			args: []string{"--limit", "0"},
+			want: "invalid --limit 0",
+		},
+		{
+			name: "limit too large",
+			args: []string{"--limit", "51"},
+			want: "invalid --limit 51",
+		},
+		{
+			name: "lat requires lon",
+			args: []string{"--lat", "40.7128"},
+			want: "--lat and --lon must be provided together",
+		},
+		{
+			name: "invalid lat",
+			args: []string{"--lat", "91", "--lon", "-74"},
+			want: "invalid --lat 91",
+		},
+		{
+			name: "invalid lon",
+			args: []string{"--lat", "40", "--lon", "-181"},
+			want: "invalid --lon -181",
+		},
+		{
+			name: "radius requires geo",
+			args: []string{"--radius-meters", "1200"},
+			want: "--radius-meters requires both --lat and --lon",
+		},
+		{
+			name: "radius must be positive",
+			args: []string{"--lat", "40.7128", "--lon", "-74.006", "--radius-meters", "0"},
+			want: "invalid --radius-meters 0",
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {
+				t.Fatal("HTTP should not be reached for invalid discovery flags")
+			}))
+			defer srv.Close()
+
+			var stdout, stderr bytes.Buffer
+			cmd := integrationHarness(t, srv.URL, "test-token", &stdout, &stderr)
+			cmd.SetArgs(append([]string{"restaurants", "discover"}, tc.args...))
+
+			err := cmd.Execute()
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), tc.want)
+		})
+	}
+}
+
 func TestCLI_ReservationsSearch_JSON(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPost, r.Method)

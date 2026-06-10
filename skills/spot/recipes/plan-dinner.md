@@ -17,30 +17,46 @@ See SKILL.md § *Using history as soft preference signal* for the full rules on 
 
 ### 2. Discover candidates
 
-Search by the strongest signal:
+For open-ended recommendations, start with the discovery endpoint and the strongest signal:
 
 ```
-spot restaurants search "flatiron" --json
+spot restaurants discover --neighborhood "flatiron" --json
 ```
 
 or
 
 ```
-spot restaurants search "italian" --json
+spot restaurants discover --cuisine "italian" --json
 ```
 
-You'll often need 2–3 queries to get a reasonable candidate set. Merge results in memory; dedupe by ID.
+For vibe or free-text requests, use the positional query:
+
+```
+spot restaurants discover "quiet celebratory sushi" --json
+```
+
+You'll often need 2–3 discovery calls to get a reasonable candidate set. Merge results in memory; dedupe by `restaurant.id`.
+
+If the user names specific restaurants to include, or if a discovery result needs exact-name confirmation, resolve those IDs with:
+
+```
+spot restaurants search "Gramercy Tavern" --json
+```
+
+Search results are a plain restaurant array; dedupe them by `id`.
 
 ### 3. Shortlist to 3–5 candidates
 
 From the candidate set, pick the top 3–5 based on:
 - Name / reputation match to user's preference.
+- Discovery score, restaurant ratings, mentions, cuisine, neighborhood, and description/editorial fields.
+- Search result position and exact-name confidence for any user-named restaurants.
 - Platform fit (user has that platform connected).
 - Party-size fit (check `minimumPartySize` / `maximumPartySize` from `restaurants get`).
 - **History signal** — prefer cuisines / neighborhoods the user has shown affinity for, but deprioritize restaurants they visited in the last ~30 days (variety bias). If you're intentionally skipping a frequent favorite, mention it by name so the user can override.
 - **Booking-style calibration** — if history shows they mostly book tough reservations (high `bookingDifficulty`), bias toward ambitious picks; if casual, the opposite.
 
-Optionally call `spot restaurants get <id>` on each top candidate to see cuisine, hours, address if that helps differentiate.
+Optionally call `spot restaurants get <id>` on each top candidate to see active booking platforms and party limits if that helps differentiate.
 
 ### 4. Search availability across the shortlist in one call
 
@@ -79,4 +95,4 @@ Once the user picks, book per the find-and-book flow (step 4a).
 
 - **All candidates have zero availability:** pivot to `recipes/monitor-drop.md` — offer to set an autobook search covering the 5 best shortlisted restaurants.
 - **User has an existing search covering the same window:** flag it — *"You already have a search watching Don Angie, Via Carota, and L'Artusi for this same window. Should I pick from those first, or add Lodi to that search?"*
-- **Shortlist too narrow:** if `restaurants search` returns fewer than 3 results for all queries, broaden ("italian" → "pasta" → "european"). Ask the user for more signals if still stuck.
+- **Shortlist too narrow:** if `restaurants discover` returns fewer than 3 results for all queries, broaden ("italian" -> "pasta" -> "european"). Ask the user for more signals if still stuck.

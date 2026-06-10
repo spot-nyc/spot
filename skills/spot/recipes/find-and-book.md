@@ -13,13 +13,15 @@ Resolve any ambiguity **before** running commands:
 
 ### 2. Resolve the restaurant ID
 
-If the user named a restaurant, resolve the ID:
+If the user named a restaurant, resolve the ID with `restaurants search`:
 
 ```
 spot restaurants search "Gramercy Tavern" --json
 ```
 
 Pick the top match by name. If the top result is a close-but-not-exact name match, call out the ambiguity and confirm with the user before proceeding.
+
+Use `restaurants discover` only when the user wants suggested fallback restaurants rather than naming them directly. In that case, dedupe discovery candidates by `results[].restaurant.id` and search results by `[].id`.
 
 ### 3. Search for available slots
 
@@ -53,7 +55,7 @@ Read the resulting reservation ID back to the user. If the command returns exit 
 
 > "Nothing available at Gramercy Tavern in that window. I can set up a search that will book the first matching table the moment one drops. We can add up to 4 other restaurants as fallbacks — want to add any?"
 
-Ask for fallbacks. Then:
+Ask for fallbacks. Resolve named fallbacks with `restaurants search`; if the user asks you to suggest fallbacks, use `restaurants discover` with the closest cuisine, neighborhood, or vibe constraints. Then:
 
 ```
 spot searches create \

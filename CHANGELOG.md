@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-06-10
+
+### Added
+- `spot restaurants discover` — ranked restaurant discovery by text, cuisine, neighborhood, market, geo radius, and sort order. JSON output returns `results` with a full restaurant object, score, and optional distance.
+- Go library:
+  - `RestaurantsService.Discover(ctx, params)` — calls `GET /restaurants/search` for ranked restaurant discovery.
+  - `RestaurantSearchParams`, `RestaurantSearchResponse`, and `RestaurantSearchResult` types for discovery requests and responses.
+  - `Restaurant` gains richer public fields including coordinates, availability, images, price tier, description/editorial/policy text, social/contact links, ratings, mentions, platform IDs, and fee metadata.
+- Claude Code skill for Spot workflows, including recipes for find-and-book, dinner planning, monitoring drops, checking state, and cancel-and-rebook.
+- Live integration tests for auth, searches, restaurants, reservations, and release-gated API compatibility checks.
+
+### Changed
+- Restaurant planning guidance now distinguishes `restaurants search` for stable name/ID lookup from `restaurants discover` for open-ended ranked recommendations.
+- Release workflow now runs the live integration suite before publishing artifacts.
+- README install and usage documentation now includes the shipped Spot skill.
+
+### Fixed
+- `SearchesService.Get` now maps missing searches to `ErrSearchNotFound`.
+- CLI integration tests isolate credential storage so test runs cannot touch a developer's real keychain entries.
+- Release integration-token rotation now uses the OAuth refresh endpoint with the CLI public client ID.
+
 ## [0.3.0] - 2026-04-22
 
 ### Added
@@ -89,7 +110,8 @@ First tagged release of the Spot SDK.
 - `scoop bucket add spot-nyc https://github.com/spot-nyc/scoop-bucket && scoop install spot`
 - `curl -fsSL https://raw.githubusercontent.com/spot-nyc/spot/main/install.sh | sh`
 
-[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/spot-nyc/spot/releases/tag/v0.4.0
 [0.3.0]: https://github.com/spot-nyc/spot/releases/tag/v0.3.0
 [0.2.0]: https://github.com/spot-nyc/spot/releases/tag/v0.2.0
 [0.1.0]: https://github.com/spot-nyc/spot/releases/tag/v0.1.0

@@ -69,7 +69,7 @@ with auth errors. Recovery: repeat the one-time setup with a fresh login.
 Covered:
 - Auth: whoami roundtrip.
 - Searches: full CRUD lifecycle.
-- Restaurants: search + get.
+- Restaurants: search + get + discover.
 - Reservations: list, history, search (read-only).
 
 **Not covered (out of scope for v0.4.0):**

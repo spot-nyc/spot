@@ -16,13 +16,22 @@ Both tracks are first-class. Know which one fits the user's situation before rea
 
 ## Core concepts
 
-- **Restaurant** — a venue in the Spot catalog. Discover with `spot restaurants search <query>`; get detail with `spot restaurants get <id>`.
+- **Restaurant** — a venue in the Spot catalog. Resolve known names/IDs with `spot restaurants search <query>`; do broader discovery with `spot restaurants discover ...`; get detail with `spot restaurants get <id>`.
 - **Reservation** — a booked table the user holds. Upcoming via `spot reservations list`; full log (past + upcoming + external platforms) via `spot reservations history`.
 - **Search** — the user's standing autobook request. Has a date/time window, party size, and **up to 5 restaurant targets**. The first target that drops a matching slot gets booked.
 - **SearchTarget** — one restaurant attached to a search.
 - **Slot** — an immediate-booking opportunity returned by `spot reservations search`. Each slot has a **~5-minute TTL** on the server. If the user hesitates, re-run search.
 - **Platform connection** — booking requires the user to have linked their Resy / OpenTable / SevenRooms / DoorDash account via the Spot **mobile app**. Cannot be linked from the CLI. If a book call returns `ErrPlatformNotConnected` (exit 10), stop and tell the user to open the mobile app.
 - **Time zone** — every date and time in the CLI is `America/New_York`. Dates are `YYYY-MM-DD`; times are `HH:MM` or `HH:MM:SS`.
+
+## Restaurant Lookup vs Discovery
+
+Spot supports two restaurant-finding commands. Use both when they fit:
+
+- **`spot restaurants search <query>`** — stable name/ID lookup. Use when the user names a specific restaurant, when resolving restaurants before booking, or when turning a user's explicit fallback list into IDs. The JSON output is a plain array of restaurant entities.
+- **`spot restaurants discover ...`** — ranked candidate generation. Use for open-ended requests by neighborhood, cuisine, vibe, market, or geo radius. The JSON output is `{results, nextCursor}`; each result has a restaurant entity plus ranking metadata.
+
+When the user is planning and open to suggestions, start with `discover`. When the user names a place or asks for availability at known restaurants, use `search` to resolve IDs.
 
 ## Opening routine
 
@@ -70,7 +79,7 @@ Reservation history is the cheapest personalization signal available — the use
 - **Treat as a prior, not a constraint.** If history is Italian-heavy, that's a starting guess, not a filter. Never silently exclude non-Italian restaurants from recommendations.
 - **Explicitly invite deviation.** When patterns are clear, lead with them and offer an escape hatch: *"You usually go for Italian downtown — want that, or break pattern tonight?"*
 - **Seed defaults from patterns.** Party always 2? Default the party flag to 2 when the user doesn't specify. Always 7:30? Default the time window to 6:30–9:00.
-- **Avoid recent re-recommendations.** When ranking candidates from `restaurants search`, deprioritize anything the user visited in the last ~30 days. Mention by name if you're intentionally skipping a frequent favorite so the user can override.
+- **Avoid recent re-recommendations.** When ranking restaurant candidates, deprioritize anything the user visited in the last ~30 days. Mention by name if you're intentionally skipping a frequent favorite so the user can override.
 - **Stated preferences beat inferred ones, every time.** "Japanese tonight" beats an Italian-heavy history. Drop the prior and go.
 
 **Cold-start behavior:**
@@ -90,11 +99,12 @@ Reservation history is the cheapest personalization signal available — the use
 
 ### Intent: "plan <something> in <neighborhood> on <date>" (research mode)
 
-1. `spot restaurants search <query>` for candidates — query by neighborhood, cuisine, or vibe word.
-2. Narrow to 3–5 top candidates. Optionally `spot restaurants get <id>` on each to read cuisine, party limits, hours, and active platforms.
-3. `spot reservations search --restaurant a,b,c --date ... --start-time ... --end-time ... --party <N>` across candidates in one call.
-4. Present ranked options: time fit, seating, platform, any other differentiators. Let the user pick.
-5. Confirm + book the chosen slot, same as the book flow.
+1. `spot restaurants discover <query> --cuisine ... --neighborhood ... --json` for candidates. Use flags only when the user supplied that constraint.
+2. Use `spot restaurants search <name> --json` for any specific restaurants the user names as must-include options or fallbacks.
+3. Narrow to 3–5 top candidates. Discovery result IDs live at `results[].restaurant.id`; search result IDs live at `[].id`. Optionally `spot restaurants get <id>` on each to read booking platforms and party limits.
+4. `spot reservations search --restaurant a,b,c --date ... --start-time ... --end-time ... --party <N>` across candidates in one call.
+5. Present ranked options: time fit, seating, platform, any other differentiators. Let the user pick.
+6. Confirm + book the chosen slot, same as the book flow.
 
 ### Intent: "what do I have?"
 
@@ -128,7 +138,7 @@ Example: *"Setting up a search for Don Angie, Via Carota, and L'Artusi on May 15
 **Silent (no ceremony needed — read-only):**
 - `spot auth whoami`
 - `spot reservations list`, `history`, `search`
-- `spot restaurants search`, `get`
+- `spot restaurants search`, `discover`, `get`
 - `spot searches list`, `get`
 
 Never proactively run `spot auth logout` or `spot auth logout --all`. Those are user-initiated only.
@@ -154,7 +164,7 @@ For any non-zero exit not listed: show the server's message. Don't fabricate exp
 - **Times:** `HH:MM` (CLI normalizes) or `HH:MM:SS`. All America/New_York.
 - **Party size:** positive integer.
 - **Restaurant flag:** `--restaurant` accepts a comma-separated list or can be repeated. Max 5 per search.
-- **`--json` is authoritative.** Table mode is pretty for humans; use `--json` when parsing output.
+- **`--json` is authoritative.** Table mode is pretty for humans; use `--json` when parsing output. `restaurants search --json` returns a restaurant array. `restaurants discover --json` returns `{results, nextCursor}`; each result contains a restaurant entity at `restaurant`, a `score`, and optional `distanceMeters`.
 
 ## Recipes
 
