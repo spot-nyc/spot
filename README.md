@@ -36,6 +36,7 @@ Run `spot update` at any time to check how `spot` was installed and see the matc
 ```bash
 spot auth login                              # Sign in via browser
 spot restaurants search "gramercy"           # Find restaurants
+spot restaurants discover "italian" --sort rating --limit 5 # Ranked recommendations
 spot reservations search \                   # Check availability
   --restaurant rst_abc \
   --date 2026-05-15 \
@@ -47,7 +48,7 @@ spot reservations list                       # Upcoming reservations
 spot reservations history                    # Full reservation log
 ```
 
-Every command supports `--json` for machine-readable output. Run `spot <command> --help` for flags and details.
+Every command supports `--json` for machine-readable output. Restaurant discovery sorts are `auto`, `relevance`, `rating`, and `distance`. Run `spot <command> --help` for flags and details.
 
 ## Using Spot with Claude Code
 

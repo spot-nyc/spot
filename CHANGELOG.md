@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-06-17
+
+### Added
+- Go library: `Restaurant` now decodes public `dishes` editorial menu data.
+- `spot restaurants discover --sort rating` and `RestaurantSearchSortRating` for rating/acclaim-ranked discovery.
+
+### Changed
+- `spot restaurants discover --sort` now matches the API's current values: `auto`, `relevance`, `rating`, and `distance`. The old `recent` sort is deprecated in the Go library and rejected by the CLI.
+
+### Removed
+- Go library: `RestaurantRating.ArticleDate` was removed because the public API no longer exposes rating article dates.
+
 ## [0.4.0] - 2026-06-10
 
 ### Added
@@ -110,7 +122,8 @@ First tagged release of the Spot SDK.
 - `scoop bucket add spot-nyc https://github.com/spot-nyc/scoop-bucket && scoop install spot`
 - `curl -fsSL https://raw.githubusercontent.com/spot-nyc/spot/main/install.sh | sh`
 
-[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/spot-nyc/spot/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/spot-nyc/spot/releases/tag/v0.5.0
 [0.4.0]: https://github.com/spot-nyc/spot/releases/tag/v0.4.0
 [0.3.0]: https://github.com/spot-nyc/spot/releases/tag/v0.3.0
 [0.2.0]: https://github.com/spot-nyc/spot/releases/tag/v0.2.0

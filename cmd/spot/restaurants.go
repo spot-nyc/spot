@@ -188,7 +188,7 @@ func newRestaurantsDiscoverCmd(flags *rootFlags) *cobra.Command {
 	cmd.Flags().StringVar(&neighborhood, "neighborhood", "", "filter by neighborhood")
 	cmd.Flags().StringVar(&market, "market", "", "filter by market (for NYC, use new-york)")
 	cmd.Flags().StringVar(&scope, "scope", "", "scope: all, canonical")
-	cmd.Flags().StringVar(&sort, "sort", "", "sort: relevance, distance, recent")
+	cmd.Flags().StringVar(&sort, "sort", "", "sort: auto, relevance, rating, distance")
 	cmd.Flags().IntVar(&limit, "limit", 0, "max results, 1-50 (server default 20)")
 	cmd.Flags().Float64Var(&lat, "lat", 0, "latitude for geo search")
 	cmd.Flags().Float64Var(&lon, "lon", 0, "longitude for geo search")
@@ -205,8 +205,8 @@ func validateRestaurantSearchFlags(cmd *cobra.Command, scope, sort string, limit
 	if scope != "" && !oneOf(scope, "all", "canonical") {
 		return fmt.Errorf("invalid --scope %q; expected all or canonical", scope)
 	}
-	if sort != "" && !oneOf(sort, "relevance", "distance", "recent") {
-		return fmt.Errorf("invalid --sort %q; expected relevance, distance, or recent", sort)
+	if sort != "" && !oneOf(sort, "auto", "relevance", "rating", "distance") {
+		return fmt.Errorf("invalid --sort %q; expected auto, relevance, rating, or distance", sort)
 	}
 	if sort == "distance" && (!latSet || !lonSet) {
 		return fmt.Errorf("--sort distance requires both --lat and --lon")

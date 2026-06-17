@@ -43,6 +43,7 @@ type Restaurant struct {
 	Instagram                   string                  `json:"instagram,omitempty"`
 	GoogleID                    string                  `json:"googleId,omitempty"`
 	GoogleMapsURL               string                  `json:"googleMapsUrl,omitempty"`
+	Dishes                      []RestaurantDish        `json:"dishes,omitempty"`
 	Ratings                     []RestaurantRating      `json:"ratings,omitempty"`
 	Mentions                    []RestaurantMention     `json:"mentions,omitempty"`
 	ResyID                      string                  `json:"resyId,omitempty"`
@@ -103,9 +104,12 @@ type RestaurantSearchSort string
 
 // Restaurant search sort orders supported by restaurant discovery.
 const (
+	RestaurantSearchSortAuto      RestaurantSearchSort = "auto"
 	RestaurantSearchSortRelevance RestaurantSearchSort = "relevance"
+	RestaurantSearchSortRating    RestaurantSearchSort = "rating"
 	RestaurantSearchSortDistance  RestaurantSearchSort = "distance"
-	RestaurantSearchSortRecent    RestaurantSearchSort = "recent"
+	// Deprecated: the Spot API no longer supports recent as a discovery sort.
+	RestaurantSearchSortRecent RestaurantSearchSort = "recent"
 )
 
 // RestaurantSearchParams are inputs for RestaurantsService.Discover.
@@ -162,12 +166,32 @@ type RestaurantDailyAvailability struct {
 
 // RestaurantRating is an editorial or guide rating for a restaurant.
 type RestaurantRating struct {
-	Source      string  `json:"source"`
-	ArticleURL  string  `json:"articleUrl"`
-	ArticleDate *string `json:"articleDate,omitempty"`
-	Label       *string `json:"label,omitempty"`
-	Score       float64 `json:"score"`
-	Max         float64 `json:"max"`
+	Source     string  `json:"source"`
+	ArticleURL string  `json:"articleUrl"`
+	Label      *string `json:"label,omitempty"`
+	Score      float64 `json:"score"`
+	Max        float64 `json:"max"`
+}
+
+// RestaurantDish is a dish mention from publisher-authored editorial coverage.
+type RestaurantDish struct {
+	Name           string                      `json:"name"`
+	Quote          *string                     `json:"quote,omitempty"`
+	ImageURL       *string                     `json:"imageUrl,omitempty"`
+	Standout       *bool                       `json:"standout,omitempty"`
+	ShouldOrder    *bool                       `json:"shouldOrder,omitempty"`
+	Recommendation *string                     `json:"recommendation,omitempty"`
+	Attributions   []RestaurantDishAttribution `json:"attributions,omitempty"`
+}
+
+// RestaurantDishAttribution identifies the article behind a dish mention.
+type RestaurantDishAttribution struct {
+	Origin       string  `json:"origin"`
+	Source       string  `json:"source"`
+	ArticleURL   string  `json:"articleUrl"`
+	ArticleDate  *string `json:"articleDate,omitempty"`
+	ArticleType  string  `json:"articleType"`
+	ArticleTitle string  `json:"articleTitle"`
 }
 
 // RestaurantMention is an editorial mention of a restaurant.

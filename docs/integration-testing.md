@@ -72,7 +72,7 @@ Covered:
 - Restaurants: search + get + discover.
 - Reservations: list, history, search (read-only).
 
-**Not covered (out of scope for v0.4.0):**
+**Not covered:**
 - `reservations book` / `cancel` — would hold or release real tables on
   booking platforms. Unit tests + manual smoke cover these until a
   server-side test-mode booking mock exists.

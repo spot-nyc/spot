@@ -371,7 +371,7 @@ func TestCLI_RestaurantsDiscover_JSON(t *testing.T) {
 		assert.Equal(t, "flatiron", query.Get("neighborhood"))
 		assert.Equal(t, "new-york", query.Get("market"))
 		assert.Equal(t, "canonical", query.Get("scope"))
-		assert.Equal(t, "distance", query.Get("sort"))
+		assert.Equal(t, "rating", query.Get("sort"))
 		assert.Equal(t, "5", query.Get("limit"))
 		assert.Equal(t, "40.7128", query.Get("lat"))
 		assert.Equal(t, "-74.006", query.Get("lon"))
@@ -425,7 +425,7 @@ func TestCLI_RestaurantsDiscover_JSON(t *testing.T) {
 		"--neighborhood", "flatiron",
 		"--market", "new-york",
 		"--scope", "canonical",
-		"--sort", "distance",
+		"--sort", "rating",
 		"--limit", "5",
 		"--lat", "40.7128",
 		"--lon", "-74.006",
@@ -461,7 +461,7 @@ func TestCLI_RestaurantsDiscover_ValidatesFlags(t *testing.T) {
 		},
 		{
 			name: "unsupported sort",
-			args: []string{"--sort", "rating"},
+			args: []string{"--sort", "recent"},
 			want: "invalid --sort",
 		},
 		{

@@ -123,6 +123,26 @@ func TestRestaurantsService_Discover(t *testing.T) {
 						"instagram": null,
 						"googleId": "google_lodi",
 						"googleMapsUrl": "https://maps.example.com/lodi",
+						"dishes": [
+							{
+								"name": "Agnolotti",
+								"quote": "Order the agnolotti.",
+								"imageUrl": "https://example.com/agnolotti.jpg",
+								"standout": true,
+								"shouldOrder": true,
+								"recommendation": "recommended",
+								"attributions": [
+									{
+										"origin": "editorial",
+										"source": "infatuation-nyc",
+										"articleUrl": "https://example.com/pasta",
+										"articleType": "guide",
+										"articleTitle": "Best Pasta",
+										"articleDate": "2026-05-01"
+									}
+								]
+							}
+						],
 						"ratings": [
 							{
 								"source": "infatuation-nyc",
@@ -208,8 +228,17 @@ func TestRestaurantsService_Discover(t *testing.T) {
 	require.NotNil(t, result.Restaurant.Coordinates)
 	assert.Equal(t, -73.978, result.Restaurant.Coordinates.X)
 	assert.Equal(t, 40.758, result.Restaurant.Coordinates.Y)
+	require.Len(t, result.Restaurant.Dishes, 1)
+	assert.Equal(t, "Agnolotti", result.Restaurant.Dishes[0].Name)
+	require.NotNil(t, result.Restaurant.Dishes[0].Quote)
+	assert.Equal(t, "Order the agnolotti.", *result.Restaurant.Dishes[0].Quote)
+	require.Len(t, result.Restaurant.Dishes[0].Attributions, 1)
+	assert.Equal(t, "Best Pasta", result.Restaurant.Dishes[0].Attributions[0].ArticleTitle)
 	require.Len(t, result.Restaurant.Ratings, 1)
 	assert.Equal(t, "infatuation-nyc", result.Restaurant.Ratings[0].Source)
+	ratingJSON, err := json.Marshal(result.Restaurant.Ratings[0])
+	require.NoError(t, err)
+	assert.NotContains(t, string(ratingJSON), "articleDate")
 	require.Len(t, result.Restaurant.Mentions, 1)
 	assert.Equal(t, "Best Pasta", result.Restaurant.Mentions[0].ArticleTitle)
 	assert.Equal(t, []string{"Resy"}, result.Restaurant.Platforms())
