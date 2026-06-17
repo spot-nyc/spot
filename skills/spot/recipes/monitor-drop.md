@@ -18,6 +18,7 @@ Quality of the autobook outcome depends on the candidates. Help the user assembl
 
 - Start from their stated preference (one restaurant → add 4 similar).
 - Or use the plan-dinner flow's shortlisting to pick 5 from a broader search.
+- For suggested fallbacks, use `restaurants discover --sort relevance` for similar-vibe backups and `--sort rating` for best/highest-rated backup asks.
 - **Draw on history as a source of likely-fit fallbacks.** If the stated restaurant is Italian in Flatiron, suggest adding cuisines / neighborhoods the user has booked before in the same vibe. Mention why: *"I'm adding Via Carota and Don Angie since you've booked both in the past — fair game as backups?"*
 - Cap at 5 — the API rejects more.
 

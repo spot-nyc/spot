@@ -50,15 +50,17 @@ spot reservations history                    # Full reservation log
 
 Every command supports `--json` for machine-readable output. Restaurant discovery sorts are `auto`, `relevance`, `rating`, and `distance`. Run `spot <command> --help` for flags and details.
 
-## Using Spot with Claude Code
+## Using Spot with AI agents
 
-The repo ships a Claude Code skill at [`skills/spot/`](skills/spot/README.md) that lets Claude Code drive the CLI conversationally — find tables, plan dinners, set autobook searches, check state, handle cancellations.
+The repo ships agent instructions at [`skills/spot/`](skills/spot/README.md) that let an AI agent drive the CLI conversationally — find tables, plan dinners, set autobook searches, check state, handle cancellations.
+
+Agents need shell access to run `spot` commands and should parse CLI responses with `--json`. Claude Code can install the skill directly:
 
 ```bash
 cp -R skills/spot ~/.claude/skills/
 ```
 
-Restart Claude Code. The skill auto-activates when you ask about reservations, restaurants, or dining plans. See [`skills/spot/README.md`](skills/spot/README.md) for example prompts.
+Other agents can load [`skills/spot/SKILL.md`](skills/spot/SKILL.md) plus the relevant recipe from [`skills/spot/recipes/`](skills/spot/recipes/). See [`skills/spot/README.md`](skills/spot/README.md) for the runtime contract and example prompts.
 
 ## License
 

@@ -5,6 +5,12 @@ description: Find and book NYC restaurant reservations via the Spot CLI. Use whe
 
 # Spot
 
+## Agent runtime assumptions
+
+Use these instructions with any AI agent that can run shell commands and read command output. The agent must have access to an installed `spot` CLI on the user's machine. If the agent cannot run commands, use this skill only as planning guidance and ask the user to run the CLI commands themselves.
+
+When instructions say to run commands in parallel, do so if your runtime supports parallel tool calls; otherwise run them sequentially. Cache command results in whatever session memory or scratch state your runtime provides. Always parse CLI output with `--json` when making decisions.
+
 ## What Spot is
 
 Spot is a CLI-first NYC restaurant reservation service. It hunts the big booking platforms — Resy, OpenTable, SevenRooms, and DoorDash — on the user's behalf. The model has two tracks:
@@ -33,9 +39,19 @@ Spot supports two restaurant-finding commands. Use both when they fit:
 
 When the user is planning and open to suggestions, start with `discover`. When the user names a place or asks for availability at known restaurants, use `search` to resolve IDs.
 
+Discovery sort rules:
+
+- Omit `--sort` or use `--sort auto` for normal open-ended planning. The server picks a sensible ranking based on the query shape.
+- Use `--sort rating` for explicit quality/acclaim asks: "highest rated", "best reviewed", "top Italian", "most acclaimed", or similar. This is a ranked sample, not a complete citywide leaderboard.
+- Use `--sort relevance` for vibe, dish, occasion, or name-like free-text discovery where semantic match matters more than acclaim.
+- Use `--sort distance` only with both `--lat` and `--lon`.
+- Do not use `--sort recent`; it is retired and rejected by the CLI.
+
+Restaurant JSON can include `ratings`, `mentions`, and `dishes`. Use `ratings` for score/acclaim questions, `mentions` for editorial/list context, and `dishes` for "what should I order?" or dish-driven planning. `RestaurantRating` no longer exposes `articleDate`; do not imply freshness for ratings. `mentions[].articleDate` and `dishes[].attributions[].articleDate` may exist and can be used when talking about article context.
+
 ## Opening routine
 
-On the first relevant query in a session, run these three commands **in parallel** with `--json` and cache the results for the rest of the session:
+On the first relevant query in a session, run these three commands with `--json` and cache the results for the rest of the session. Run them in parallel when your agent runtime supports it:
 
 ```
 spot auth whoami --json
@@ -99,7 +115,7 @@ Reservation history is the cheapest personalization signal available — the use
 
 ### Intent: "plan <something> in <neighborhood> on <date>" (research mode)
 
-1. `spot restaurants discover <query> --cuisine ... --neighborhood ... --json` for candidates. Use flags only when the user supplied that constraint.
+1. `spot restaurants discover <query> --cuisine ... --neighborhood ... --sort ... --json` for candidates. Use flags only when the user supplied that constraint; choose sort with the rules above.
 2. Use `spot restaurants search <name> --json` for any specific restaurants the user names as must-include options or fallbacks.
 3. Narrow to 3–5 top candidates. Discovery result IDs live at `results[].restaurant.id`; search result IDs live at `[].id`. Optionally `spot restaurants get <id>` on each to read booking platforms and party limits.
 4. `spot reservations search --restaurant a,b,c --date ... --start-time ... --end-time ... --party <N>` across candidates in one call.
@@ -121,6 +137,8 @@ Recoverable. Re-run `spot reservations search` with the original params, pick th
 ## Autonomy rules
 
 Different actions warrant different levels of ceremony.
+
+Never ask the user for Spot access tokens or refresh tokens, and never print secrets. Authentication happens through `spot auth login`; platform linking happens in the Spot mobile app.
 
 **Confirm in plain language before:**
 - `spot reservations book` — holds a real table.
@@ -164,7 +182,7 @@ For any non-zero exit not listed: show the server's message. Don't fabricate exp
 - **Times:** `HH:MM` (CLI normalizes) or `HH:MM:SS`. All America/New_York.
 - **Party size:** positive integer.
 - **Restaurant flag:** `--restaurant` accepts a comma-separated list or can be repeated. Max 5 per search.
-- **`--json` is authoritative.** Table mode is pretty for humans; use `--json` when parsing output. `restaurants search --json` returns a restaurant array. `restaurants discover --json` returns `{results, nextCursor}`; each result contains a restaurant entity at `restaurant`, a `score`, and optional `distanceMeters`.
+- **`--json` is authoritative.** Table mode is pretty for humans; use `--json` when parsing output. `restaurants search --json` returns a restaurant array. `restaurants discover --json` returns `{results, nextCursor}`; each result contains a restaurant entity at `restaurant`, a `score`, and optional `distanceMeters`. Discovery restaurant entities may include editorial `ratings`, `mentions`, and `dishes`.
 
 ## Recipes
 

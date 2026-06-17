@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Spot skill documentation now describes a generic AI-agent runtime contract while keeping Claude Code install instructions.
+
 ## [0.5.0] - 2026-06-17
 
 ### Added

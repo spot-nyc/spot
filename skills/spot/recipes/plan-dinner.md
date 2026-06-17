@@ -29,10 +29,22 @@ or
 spot restaurants discover --cuisine "italian" --json
 ```
 
+For explicit quality/acclaim asks, use rating sort:
+
+```
+spot restaurants discover "italian" --sort rating --json
+```
+
 For vibe or free-text requests, use the positional query:
 
 ```
-spot restaurants discover "quiet celebratory sushi" --json
+spot restaurants discover "quiet celebratory sushi" --sort relevance --json
+```
+
+For dish-led requests, keep the dish in the query and inspect `restaurant.dishes` in the result:
+
+```
+spot restaurants discover "dumplings downtown" --sort relevance --json
 ```
 
 You'll often need 2–3 discovery calls to get a reasonable candidate set. Merge results in memory; dedupe by `restaurant.id`.
@@ -49,7 +61,8 @@ Search results are a plain restaurant array; dedupe them by `id`.
 
 From the candidate set, pick the top 3–5 based on:
 - Name / reputation match to user's preference.
-- Discovery score, restaurant ratings, mentions, cuisine, neighborhood, and description/editorial fields.
+- Discovery score, restaurant ratings, mentions, dishes, cuisine, neighborhood, and description/editorial fields.
+- `restaurant.dishes` for "what to order" or dish-led asks. Prefer dishes with useful quotes/attributions; don't invent dish recommendations when the field is empty.
 - Search result position and exact-name confidence for any user-named restaurants.
 - Platform fit (user has that platform connected).
 - Party-size fit (check `minimumPartySize` / `maximumPartySize` from `restaurants get`).
@@ -77,6 +90,7 @@ Narrate 2–4 options to the user. For each, call out:
 - Time slot (closer to user's stated preference ranks higher).
 - Seating (Dining Room beats Bar for most users, but check context).
 - Platform (if the user prefers one).
+- A short rating, editorial mention, or dish note only when it helps explain the recommendation.
 
 Example:
 
